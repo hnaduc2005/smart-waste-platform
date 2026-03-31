@@ -1,0 +1,34 @@
+# IDEs / Editors
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Build artifacts
+target/
+build/
+bin/
+out/
+dist/
+node_modules/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Python / AI
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Env variables
+.env.local
+.env.development
+.env.production
