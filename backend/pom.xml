@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Spring Boot Starter Parent: Quản lý các dependency cơ sở và phiên bản plugin -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.13</version>
+        <relativePath/> <!-- Khai báo lookup parent từ repository -->
+    </parent>
+
+    <groupId>com.ecocycle</groupId>
+    <artifactId>ecocycle-platform</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    
+    <!-- Packaging bắt buộc là 'pom' đối với dự án Multi-module -->
+    <packaging>pom</packaging>
+    
+    <name>ecocycle-platform</name>
+    <description>Parent POM cho hệ thống EcoCycle Platform Microservices. Tập trung quản lý dependencies và cấu hình.</description>
+
+    <!-- Khai báo các Modules thuộc dự án -->
+    <modules>
+        <!-- Thư viện dùng chung (Common Library) -->
+        <module>common-lib</module>
+        
+        <!-- Các dịch vụ hạ tầng (Infrastructure Services) -->
+        <module>infrastructure-services/api-gateway</module>
+        <module>infrastructure-services/discovery-server</module>
+        <module>infrastructure-services/config-server</module>
+        
+        <!-- Các dịch vụ nghiệp vụ cốt lõi (Business Services) -->
+        <module>business-services/auth-service</module>
+        <module>business-services/collection-service</module>
+        <module>business-services/report-service</module>
+        <module>business-services/reward-service</module>
+        <module>business-services/user-service</module>
+    </modules>
+
+    <!-- Thuộc tính chung (Shared Properties) -->
+    <properties>
+        <java.version>17</java.version>
+        <!-- Lưu ý: Phiên bản Spring Cloud cần phải tương thích với Spring Boot 3.5.x -->
+        <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <!-- Dependency Management: Khóa phiên bản dependency đồng nhất cho toàn bộ các module -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Cloud Dependencies Bill of Materials (BOM) -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            <!-- Tham chiếu thư viện nội bộ (Internal Common Library Reference) -->
+            <dependency>
+                <groupId>com.ecocycle</groupId>
+                <artifactId>common-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- Global Dependencies: Các thư viện được tự động kế thừa vào TẤT CẢ các module con -->
+    <dependencies>
+        <!-- Lombok: Hỗ trợ giảm thiểu boilerplate code (Getters, Setters, Constructors) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Cấu hình Maven Compiler Plugin cho phiên bản Java mục tiêu -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
