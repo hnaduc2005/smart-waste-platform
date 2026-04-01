@@ -1,4 +1,4 @@
-package com.ecocycle.gateway;
+﻿package com.ecocycle.apigateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
