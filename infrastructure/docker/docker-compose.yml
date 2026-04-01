@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # 1. Cơ sở dữ liệu PostgreSQL (Dùng chung cho toàn hệ thống - Mỗi service tự chia Schema sau)
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: ecocycle-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ecocycle
+      POSTGRES_PASSWORD: ecocycle_password
+      POSTGRES_DB: ecocycle_db # Tên DB mặc định
+    ports:
+      - "5432:5432" # Để mở port ra ngoài cho anh em dùng DBeaver/PgAdmin kết nối
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ecocycle-network
+
+  # 2. Redis Cache (Dành cho Notification, Gateway Rate Limiting)
+  redis-cache:
+    image: redis:7-alpine
+    container_name: ecocycle-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecocycle-network
+
+  # [Tuỳ chọn] 3. PgAdmin (Giao diện đồ họa để team vào xem Database trên Web)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ecocycle-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ecocycle.vn
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80" # Truy cập http://localhost:5050 để xem CSDL
+    depends_on:
+      - postgres-db
+    networks:
+      - ecocycle-network
+
+networks:
+  ecocycle-network:
+    driver: bridge # Mạng chung để sau này các container tự gọi kết nối được với nhau
+
+volumes:
+  # Gắn ổ cứng ảo để khi Docker sập không bị mất toàn bộ dữ liệu (Persistent data)
+  postgres_data:
+  redis_data:
