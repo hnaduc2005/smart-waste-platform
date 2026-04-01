@@ -1,0 +1,31 @@
+server:
+  port: 8888 # Port mặc định vạn vật đều dùng cho Config Server
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    # Bật chế độ 'native' để không bị bắt buộc dùng Git. 
+    # Cấu hình sẽ đọc thẳng từ thư mục lưu trữ cấu hình trong máy thay vì clone Repo.
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          # Nơi chứa các file application.yml dùng chung sẽ được đặt ở đây:
+          search-locations: classpath:/config-repo
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info

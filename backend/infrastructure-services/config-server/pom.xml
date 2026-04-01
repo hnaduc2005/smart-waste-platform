@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Ke thua Parent POM cua du an -->
     <parent>
         <groupId>com.ecocycle</groupId>
         <artifactId>ecocycle-platform</artifactId>
@@ -16,10 +15,25 @@
     <packaging>jar</packaging>
     
     <name>config-server</name>
-    <description>Configuration Server quan ly cau hinh tap trung cho toan nen tang.</description>
+    <description>Configuration Server quan ly cau hinh tap trung.</description>
 
-    <!-- Khai bao Dependencies cu the cho tung Module -->
     <dependencies>
+        <!-- Thư viện Config Server cốt lõi -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-config-server</artifactId>
+        </dependency>
+        
+        <!-- Khai báo làm Eureka Client để Gateway có thể gọi vào lấy cấu hình -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

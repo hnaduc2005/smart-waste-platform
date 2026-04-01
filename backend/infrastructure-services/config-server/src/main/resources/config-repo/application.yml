@@ -1,0 +1,18 @@
+# Đây là file cấu hình dùng CỰC KỲ DÙNG CHUNG cho 4 đội Khối 2,3,4,5
+# Bất kỳ ai cần thông tin tài khoản DB vào đây bốc đi
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ecocycle_db
+    username: ecocycle
+    password: ecocycle_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
