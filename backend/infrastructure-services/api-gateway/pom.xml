@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Ke thua Parent POM cua du an -->
+    <!-- Kế thừa Parent POM của dự án -->
     <parent>
         <groupId>com.ecocycle</groupId>
         <artifactId>ecocycle-platform</artifactId>
@@ -16,10 +16,27 @@
     <packaging>jar</packaging>
     
     <name>api-gateway</name>
-    <description>Thanh phan API Gateway xu ly Routing va Rate Limiting.</description>
+    <description>Thành phần API Gateway xử lý Routing và Rate Limiting.</description>
 
-    <!-- Khai bao Dependencies cu the cho tung Module -->
+    <!-- Khai báo Dependencies cụ thể cho từng Module -->
     <dependencies>
+        <!-- Spring Cloud Gateway: Trái tim của Gateway -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+        
+        <!-- Eureka Client: Để Gateway tìm được mặt các service khác -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        
+        <!-- Actuator: Kiểm tra sức khỏe -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
