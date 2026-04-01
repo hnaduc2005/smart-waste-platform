@@ -18,8 +18,18 @@
     <name>discovery-server</name>
     <description>Service Registry (Eureka) phuc vu cho viec tu dong phat hien Microservices (Discovery).</description>
 
-    <!-- Khai bao Dependencies cu the cho tung Module -->
     <dependencies>
+        <!-- Khai báo thư viện khởi tạo Eureka Server -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+        </dependency>
+        
+        <!-- Hỗ trợ kiểm tra sức khỏe của dịch vụ (Health check API) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

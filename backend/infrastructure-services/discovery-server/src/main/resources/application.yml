@@ -1,0 +1,24 @@
+server:
+  port: 8761 # Port chuẩn mực quốc tế của máy chủ Eureka
+
+spring:
+  application:
+    name: discovery-server # Tên định danh của ứng dụng trên lưới mạng dự án
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    # 2 thẻ quan trọng bậc nhất của Eureka Server:
+    # Khai báo "Tôi là Trạm Trung Chuyển (Trọng tài)", không cần tự điểm danh (register) với chính mình!
+    registerWithEureka: false 
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+# Cấu hình Actuator để hiển thị trạng thái health-check (kiểm tra sống/chết của máy chủ)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
