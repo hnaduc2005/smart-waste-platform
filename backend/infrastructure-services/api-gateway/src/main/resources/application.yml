@@ -1,5 +1,5 @@
 server:
-  port: 8080 # Mở cổng 8080 để đón tiếp người dùng từ Mobile/Web
+  port: 8080
 
 spring:
   application:
@@ -8,31 +8,27 @@ spring:
     gateway:
       discovery:
         locator:
-          enabled: true # Kích hoạt tính năng tự phát hiện route dựa vào Eureka
-          lower-case-service-id: true # Chuyển tên service gửi lên thành chữ thường
-      # Định tuyến thủ công (Routes configuration) - Đây là nơi trỏ cổng chuyển luồng
+          enabled: true
+          lower-case-service-id: true
       routes:
-        # Ví dụ 1: Đi vào User Service
         - id: user-service-route
-          uri: lb://user-service # 'lb' = Load Balancer, Gateway sẽ hỏi Eureka để tìm IP thật sự
+          uri: lb://user-service
           predicates:
             - Path=/api/v1/users/**
         
-        # Ví dụ 2: Đi vào Auth Service (Đăng nhập, đăng ký)
         - id: auth-service-route
           uri: lb://auth-service
           predicates:
             - Path=/api/v1/auth/**
 
-# Khai báo máy chủ trung gian Eureka để API Gateway kết nối
 eureka:
   instance:
     hostname: localhost
   client:
-    registerWithEureka: true # "Xin chào Eureka, tớ là api-gateway"
-    fetchRegistry: true      # "Cho tớ xin danh sách các bạn khác nhé"
+    registerWithEureka: true
+    fetchRegistry: true
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/ # Trỏ tới nhà của Eureka
+      defaultZone: http://localhost:8761/eureka/
 
 management:
   endpoints:
