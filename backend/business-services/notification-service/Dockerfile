@@ -1,9 +1,7 @@
 # Stage 1: Build
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
-COPY pom.xml .
-COPY common-lib ./common-lib
-COPY business-services/notification-service ./business-services/notification-service
+COPY . .
 RUN mvn -pl common-lib,business-services/notification-service -am install -DskipTests -q
 
 # Stage 2: Runtime

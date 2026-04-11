@@ -18,5 +18,16 @@
     <description>Thư viện dùng chung (Shared Library) chia sẻ các lớp Utilities, Data Transfer Objects (DTOs) và Exception Handlers tập trung cho tất cả Microservices.</description>
 
     <!-- Khai báo Dependencies cho common-lib (VD: Spring Web, Validation, Security...) -->
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
