@@ -1,0 +1,30 @@
+package com.ecocycle.user.domain.models;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "collector_profiles")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CollectorProfile extends UserProfileBase {
+
+    @ManyToOne
+    @JoinColumn(name = "enterprise_id")
+    private EnterpriseProfile enterprise;
+
+    @Column(name = "vehicle_plate")
+    private String vehiclePlate;
+
+    @Column(name = "is_online")
+    private Boolean isOnline;
+}
