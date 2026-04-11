@@ -1,0 +1,13 @@
+# Config riêng cho notification-service (override config chung)
+server:
+  port: 8085
+
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/notification_db
+
+# Firebase Admin SDK config (đường dẫn tới file service-account-key.json)
+firebase:
+  service-account-path: classpath:firebase/service-account-key.json

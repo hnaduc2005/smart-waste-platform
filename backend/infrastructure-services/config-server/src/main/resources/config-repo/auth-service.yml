@@ -1,0 +1,15 @@
+# Config riêng cho auth-service (override config chung)
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/auth_db
+
+# JWT Config
+jwt:
+  secret: ecocycle_jwt_secret_key_must_be_at_least_256_bits_long_for_hs256
+  expiration-ms: 86400000      # 24 giờ
+  refresh-expiration-ms: 604800000  # 7 ngày

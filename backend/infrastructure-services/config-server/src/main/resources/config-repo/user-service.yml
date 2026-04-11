@@ -1,0 +1,9 @@
+# Config riêng cho user-service (override config chung)
+server:
+  port: 8082
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/user_db

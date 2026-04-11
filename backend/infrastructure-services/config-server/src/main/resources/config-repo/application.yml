@@ -1,12 +1,17 @@
-# Đây là file cấu hình dùng CỰC KỲ DÙNG CHUNG cho 4 đội Khối 2,3,4,5
-# Bất kỳ ai cần thông tin tài khoản DB vào đây bốc đi
+# File cấu hình DÙNG CHUNG cho toàn bộ Business Services (Load từ Config Server)
+# Mỗi service kế thừa config này, có thể override bằng file riêng (vd: auth-service.yml)
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ecocycle_db
+    # Khi chạy Docker: dùng hostname container 'postgres-db'
+    # Khi chạy local (ngoài Docker): đổi thành 'localhost'
+    url: jdbc:postgresql://postgres-db:5432/ecocycle_db
     username: ecocycle
     password: ecocycle_password
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
 
   jpa:
     hibernate:
@@ -15,4 +20,41 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    show-sql: true
+    show-sql: false
+
+  # Redis Cache (dùng hostname 'redis-cache' trong Docker)
+  data:
+    redis:
+      host: redis-cache
+      port: 6379
+      timeout: 2000ms
+
+  # Kafka (dùng hostname 'kafka' trong Docker)
+  kafka:
+    bootstrap-servers: kafka:29092
+    consumer:
+      group-id: ecocycle-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Eureka Client (tất cả Business Services đều đăng ký vào đây)
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

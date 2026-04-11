@@ -1,0 +1,9 @@
+# Config riêng cho reward-service (override config chung)
+server:
+  port: 8084
+
+spring:
+  application:
+    name: reward-service
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/reward_db

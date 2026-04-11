@@ -1,0 +1,9 @@
+# Config riêng cho collection-service (override config chung)
+server:
+  port: 8083
+
+spring:
+  application:
+    name: collection-service
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/collection_db
