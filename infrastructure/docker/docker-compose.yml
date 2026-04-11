@@ -1,7 +1,10 @@
 version: '3.8'
 
 services:
-  # 1. Cơ sở dữ liệu PostgreSQL (Dùng chung cho toàn hệ thống - Mỗi service tự chia Schema sau)
+  # =========================================================
+  # INFRASTRUCTURE: Data, Cache, Messaging
+  # =========================================================
+
   postgres-db:
     image: postgres:15-alpine
     container_name: ecocycle-postgres
@@ -9,15 +12,20 @@ services:
     environment:
       POSTGRES_USER: ecocycle
       POSTGRES_PASSWORD: ecocycle_password
-      POSTGRES_DB: ecocycle_db # Tên DB mặc định
+      POSTGRES_DB: ecocycle_db
     ports:
-      - "5432:5432" # Để mở port ra ngoài cho anh em dùng DBeaver/PgAdmin kết nối
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - ecocycle-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecocycle"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 2. Redis Cache (Dành cho Notification, Gateway Rate Limiting)
   redis-cache:
     image: redis:7-alpine
     container_name: ecocycle-redis
@@ -28,8 +36,230 @@ services:
       - redis_data:/data
     networks:
       - ecocycle-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # [Tuỳ chọn] 3. PgAdmin (Giao diện đồ họa để team vào xem Database trên Web)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: ecocycle-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - ecocycle-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: ecocycle-kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "user-registered:1:1,collection-completed:1:1,point-earned:1:1"
+    networks:
+      - ecocycle-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # =========================================================
+  # INFRASTRUCTURE: Spring Cloud Services
+  # =========================================================
+
+  discovery-server:
+    build:
+      context: ../../backend/infrastructure-services/discovery-server
+      dockerfile: Dockerfile
+    image: ecocycle/discovery-server:latest
+    container_name: ecocycle-discovery
+    restart: always
+    ports:
+      - "8761:8761"
+    networks:
+      - ecocycle-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  config-server:
+    build:
+      context: ../../backend/infrastructure-services/config-server
+      dockerfile: Dockerfile
+    image: ecocycle/config-server:latest
+    container_name: ecocycle-config
+    restart: always
+    ports:
+      - "8888:8888"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  api-gateway:
+    build:
+      context: ../../backend/infrastructure-services/api-gateway
+      dockerfile: Dockerfile
+    image: ecocycle/api-gateway:latest
+    container_name: ecocycle-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  # =========================================================
+  # BUSINESS SERVICES
+  # =========================================================
+
+  auth-service:
+    build:
+      context: ../../backend/business-services/auth-service
+      dockerfile: Dockerfile
+    image: ecocycle/auth-service:latest
+    container_name: ecocycle-auth
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/auth_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATA_REDIS_HOST: redis-cache
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  user-service:
+    build:
+      context: ../../backend/business-services/user-service
+      dockerfile: Dockerfile
+    image: ecocycle/user-service:latest
+    container_name: ecocycle-user
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/user_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATA_REDIS_HOST: redis-cache
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  collection-service:
+    build:
+      context: ../../backend/business-services/collection-service
+      dockerfile: Dockerfile
+    image: ecocycle/collection-service:latest
+    container_name: ecocycle-collection
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/collection_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  reward-service:
+    build:
+      context: ../../backend/business-services/reward-service
+      dockerfile: Dockerfile
+    image: ecocycle/reward-service:latest
+    container_name: ecocycle-reward
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/reward_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  notification-service:
+    build:
+      context: ../../backend/business-services/notification-service
+      dockerfile: Dockerfile
+    image: ecocycle/notification-service:latest
+    container_name: ecocycle-notification
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/notification_db
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  # =========================================================
+  # TOOLS (Optional)
+  # =========================================================
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: ecocycle-pgadmin
@@ -38,7 +268,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@ecocycle.vn
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "5050:80" # Truy cập http://localhost:5050 để xem CSDL
+      - "5050:80"
     depends_on:
       - postgres-db
     networks:
@@ -46,9 +276,8 @@ services:
 
 networks:
   ecocycle-network:
-    driver: bridge # Mạng chung để sau này các container tự gọi kết nối được với nhau
+    driver: bridge
 
 volumes:
-  # Gắn ổ cứng ảo để khi Docker sập không bị mất toàn bộ dữ liệu (Persistent data)
   postgres_data:
   redis_data:
