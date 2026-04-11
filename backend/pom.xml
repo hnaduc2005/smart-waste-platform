@@ -35,9 +35,9 @@
         <!-- Các dịch vụ nghiệp vụ cốt lõi (Business Services) -->
         <module>business-services/auth-service</module>
         <module>business-services/collection-service</module>
-        <module>business-services/report-service</module>
         <module>business-services/reward-service</module>
         <module>business-services/user-service</module>
+        <module>business-services/notification-service</module>
     </modules>
 
     <!-- Thuộc tính chung (Shared Properties) -->
