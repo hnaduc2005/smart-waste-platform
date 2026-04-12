@@ -18,22 +18,22 @@ public class KafkaNotificationConsumer {
     @KafkaListener(topics = "user.points.awarded", groupId = "notification-service-group")
     public void consumePointsAwardedEvent(PointsAwardedEvent event) {
         log.info("Received PointsAwardedEvent for citizen: {}", event.getCitizenId());
-        
+
         String title = "Chúc mừng! Bạn vượt được nhận được điểm thưởng";
-        String body = String.format("Bạn vừa nhận được %.2f điểm. %s. Tổng điểm tài khoản: %.2f", 
+        String body = String.format("Bạn vừa nhận được %.2f điểm. %s. Tổng điểm tài khoản: %.2f",
                 event.getPointsAdded(), event.getReason(), event.getTotalPoints());
-        
+
         firebasePushService.sendPushNotification(event.getCitizenId(), title, body);
     }
-    
+
     @KafkaListener(topics = "waste.collection.arriving", groupId = "notification-service-group")
     public void consumeCollectorArrivingEvent(CollectorArrivingEvent event) {
         log.info("Received CollectorArrivingEvent for citizen: {}", event.getCitizenId());
-        
+
         String title = "Người thu gom rác đang tới!";
-        String body = String.format("Anh/chị %s sẽ có mặt vào khoảng %s. Vui lòng chuẩn bị rác để thu gom.", 
+        String body = String.format("Anh/chị %s sẽ có mặt vào khoảng %s. Vui lòng chuẩn bị rác để thu gom.",
                 event.getCollectorName(), event.getEstimatedArrivalTime());
-                
+
         firebasePushService.sendPushNotification(event.getCitizenId(), title, body);
     }
 }
