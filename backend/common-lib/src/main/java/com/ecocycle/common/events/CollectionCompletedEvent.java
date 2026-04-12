@@ -1,0 +1,22 @@
+package com.ecocycle.common.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CollectionCompletedEvent {
+    private String wasteRequestId;
+    private String citizenId;
+    private String collectorId;
+    private String wasteType; // e.g. "RECYCLABLE", "ORGANIC", "HAZARDOUS"
+    private Double weightInKg;
+    private Instant completedAt;
+}

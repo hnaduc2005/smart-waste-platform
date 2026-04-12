@@ -85,8 +85,8 @@ services:
 
   discovery-server:
     build:
-      context: ../../backend/infrastructure-services/discovery-server
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: infrastructure-services/discovery-server/Dockerfile
     image: ecocycle/discovery-server:latest
     container_name: ecocycle-discovery
     restart: always
@@ -95,15 +95,15 @@ services:
     networks:
       - ecocycle-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
       interval: 15s
       timeout: 5s
       retries: 5
 
   config-server:
     build:
-      context: ../../backend/infrastructure-services/config-server
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: infrastructure-services/config-server/Dockerfile
     image: ecocycle/config-server:latest
     container_name: ecocycle-config
     restart: always
@@ -119,8 +119,8 @@ services:
 
   api-gateway:
     build:
-      context: ../../backend/infrastructure-services/api-gateway
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: infrastructure-services/api-gateway/Dockerfile
     image: ecocycle/api-gateway:latest
     container_name: ecocycle-gateway
     restart: always
@@ -141,8 +141,8 @@ services:
 
   auth-service:
     build:
-      context: ../../backend/business-services/auth-service
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: business-services/auth-service/Dockerfile
     image: ecocycle/auth-service:latest
     container_name: ecocycle-auth
     restart: always
@@ -165,8 +165,8 @@ services:
 
   user-service:
     build:
-      context: ../../backend/business-services/user-service
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: business-services/user-service/Dockerfile
     image: ecocycle/user-service:latest
     container_name: ecocycle-user
     restart: always
@@ -189,8 +189,8 @@ services:
 
   collection-service:
     build:
-      context: ../../backend/business-services/collection-service
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: business-services/collection-service/Dockerfile
     image: ecocycle/collection-service:latest
     container_name: ecocycle-collection
     restart: always
@@ -212,8 +212,8 @@ services:
 
   reward-service:
     build:
-      context: ../../backend/business-services/reward-service
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: business-services/reward-service/Dockerfile
     image: ecocycle/reward-service:latest
     container_name: ecocycle-reward
     restart: always
@@ -235,8 +235,8 @@ services:
 
   notification-service:
     build:
-      context: ../../backend/business-services/notification-service
-      dockerfile: Dockerfile
+      context: ../../backend
+      dockerfile: business-services/notification-service/Dockerfile
     image: ecocycle/notification-service:latest
     container_name: ecocycle-notification
     restart: always
