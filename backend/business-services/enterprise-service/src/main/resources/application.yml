@@ -1,0 +1,28 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: enterprise-service
+  datasource:
+    # URL Database riêng của service (Mô hình Database-per-service)
+    url: jdbc:postgresql://localhost:5432/ecocycle_enterprise
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update # Tự động tạo bảng dựa trên Entity viết sẵn
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# Khai báo với Service Registry (Khối 1 quản lý)
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true

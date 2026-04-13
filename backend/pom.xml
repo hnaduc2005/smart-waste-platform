@@ -38,6 +38,8 @@
         <module>business-services/reward-service</module>
         <module>business-services/user-service</module>
         <module>business-services/notification-service</module>
+        <module>business-services/enterprise-service</module>
+        <module>business-services/analytics-service</module>
     </modules>
 
     <!-- Thuộc tính chung (Shared Properties) -->
