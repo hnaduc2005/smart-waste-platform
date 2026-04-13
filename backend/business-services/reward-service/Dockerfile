@@ -1,9 +1,7 @@
 # Stage 1: Build
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
-COPY pom.xml .
-COPY common-lib ./common-lib
-COPY business-services/reward-service ./business-services/reward-service
+COPY . .
 RUN mvn -pl common-lib,business-services/reward-service -am install -DskipTests -q
 
 # Stage 2: Runtime
