@@ -15,9 +15,10 @@ class Settings(BaseSettings):
     
     # Class mapping for YOLOv11 Model
     CLASS_NAMES: dict = {
-        0: 'Recyclable',
-        1: 'Organic',
-        2: 'Hazardous'
+        0: 'biodegradable',
+        1: 'recyclable',
+        2: 'residual',
+        3: 'special'
     }
 
 settings = Settings()
