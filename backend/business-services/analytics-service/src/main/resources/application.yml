@@ -1,0 +1,32 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: analytics-service
+  datasource:
+    # Data Warehouse dạng SQL (tương lai có thể dùng TimescaleDB)
+    url: jdbc:postgresql://localhost:5432/ecocycle_analytics
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    
+  # Cấu hình Hút dữ kiện từ ống nước Kafka (Data Pipeline)
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ecocycle-analytics-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
