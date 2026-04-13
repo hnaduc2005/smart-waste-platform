@@ -31,10 +31,8 @@ class WasteClassifierModel:
             raise RuntimeError("Model is not initialized.")
             
         try:
-            # Load image from bytes
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             
-            # Run inference
             results = self.model.predict(
                 source=image,
                 conf=settings.CONFIDENCE_THRESHOLD,
@@ -43,7 +41,6 @@ class WasteClassifierModel:
             
             predictions = []
             
-            # Process results (results is a list with one element per image)
             if results and len(results) > 0:
                 result = results[0]
                 boxes = result.boxes
@@ -52,10 +49,8 @@ class WasteClassifierModel:
                     class_id = int(box.cls[0].item())
                     confidence = float(box.conf[0].item())
                     
-                    # Bounding box coordinates [x1, y1, x2, y2]
                     bndbox = box.xyxy[0].tolist() 
                     
-                    # Retrieve class name if customized, else use YOLO's default
                     class_name = settings.CLASS_NAMES.get(class_id, result.names.get(class_id, "Unknown"))
                     
                     predictions.append({
@@ -75,5 +70,4 @@ class WasteClassifierModel:
             logger.error(f"Prediction error: {e}")
             raise e
 
-# Singleton instance
 classifier_model = WasteClassifierModel()

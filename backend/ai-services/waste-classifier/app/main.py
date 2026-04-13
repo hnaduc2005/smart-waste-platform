@@ -24,15 +24,11 @@ def read_root():
 
 @app.post("/predict")
 async def predict_waste(file: UploadFile = File(...)):
-    # Validate file type
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File provided is not an image.")
         
     try:
-        # Read the file content
         contents = await file.read()
-        
-        # Run prediction
         predictions = classifier_model.predict(contents)
         
         return JSONResponse(content={
