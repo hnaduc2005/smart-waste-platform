@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     MODEL_DIR: str = os.path.join(BASE_DIR, "model_weights")
     MODEL_PATH: str = os.path.join(MODEL_DIR, "best.pt")
     
+    # Model download configuration
+    MODEL_DRIVE_ID: str = "" # Add this securely via .env file or environment variable
+    
     # Prediction settings
     CONFIDENCE_THRESHOLD: float = 0.5
     
