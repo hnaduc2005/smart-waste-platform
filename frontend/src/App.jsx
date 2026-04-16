@@ -4,6 +4,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage from './pages/DashboardPage';
+import WasteClassifierPage from './pages/WasteClassifierPage';
+import FirebasePushNotification from './components/common/FirebasePushNotification';
+import GamificationPage from './pages/GamificationPage';
 
 /** Route guard: redirect to /login if not authenticated */
 function PrivateRoute({ children }) {
@@ -19,7 +22,9 @@ function PublicOnlyRoute({ children }) {
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <FirebasePushNotification />
+      <Routes>
       {/* Default: redirect to login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -38,9 +43,16 @@ export default function App() {
       <Route path="/dashboard" element={
         <PrivateRoute><DashboardPage /></PrivateRoute>
       } />
+      <Route path="/waste-classifier" element={
+        <PrivateRoute><WasteClassifierPage /></PrivateRoute>
+      } />
+      <Route path="/gamification" element={
+        <PrivateRoute><GamificationPage /></PrivateRoute>
+      } />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </>
   );
 }
