@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import styles from './ParticlesBackground.module.css';
+
 
 const COLORS = ['#22c55e', '#14b8a6', '#4ade80', '#2dd4bf'];
 

@@ -1,13 +1,7 @@
-import { useEffect, useState } from 'react';
+
 
 /** Animated alert box - error | success | info */
 export default function Alert({ message, type = 'error', onClose }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (message) setVisible(true);
-    else setVisible(false);
-  }, [message]);
 
   if (!message) return null;
 
