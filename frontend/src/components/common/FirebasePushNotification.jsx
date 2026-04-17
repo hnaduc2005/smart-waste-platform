@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { requestFirebaseToken, onMessageListener } from '../../services/firebase';
 
 export default function FirebasePushNotification() {
-  const [notification, setNotification] = useState<{ title: string, body: string } | null>(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     // ==== 1. Yêu cầu quyền Browser và Lấy Token ====
@@ -20,7 +20,7 @@ export default function FirebasePushNotification() {
     }
 
     // ==== 2. Lắng nghe Notify khi trình duyệt Đang Mở (Foreground) ====
-    const unsubscribe = onMessageListener().then((payload: any) => {
+    const unsubscribe = onMessageListener((payload) => {
       setNotification({
         title: payload?.notification?.title || "Có thông báo",
         body: payload?.notification?.body || "Bạn có một sự kiện mới!"
@@ -29,7 +29,12 @@ export default function FirebasePushNotification() {
 
       // Cho Toast tắt tự động sau 5s
       setTimeout(() => setNotification(null), 5000);
-    }).catch(err => console.log('Lỗi bắt Payload:', err));
+    });
+
+    // Cleanup listener khi component unmount
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
 
   }, []);
 

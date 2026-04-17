@@ -22,7 +22,7 @@ export const messaging = getMessaging(app);
  * Hàm hỗ trợ lấy Token của Trình duyệt (Dùng để gửi lên Server)
  * @param vapidKey Đây là Web Push Certificate Key (lấy trong Firebase Console -> Project Settings -> Cloud Messaging)
  */
-export const requestFirebaseToken = async (vapidKey: string) => {
+export const requestFirebaseToken = async (vapidKey) => {
   try {
     const currentToken = await getToken(messaging, { vapidKey });
     if (currentToken) {
@@ -42,9 +42,8 @@ export const requestFirebaseToken = async (vapidKey: string) => {
 /**
  * Hàm lắng nghe thông báo khi Web đang mở (Foreground)
  */
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
+export const onMessageListener = (callback) => {
+  return onMessage(messaging, (payload) => {
+    callback(payload);
   });
+};
