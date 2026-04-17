@@ -1,7 +1,22 @@
-export interface PredictResponse {
-  class_name: string;
+export interface BoundingBox {
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+}
+
+export interface Prediction {
   class_id?: number;
+  class_name: string;
   confidence: number;
+  bounding_box: BoundingBox;
+}
+
+export interface PredictResponse {
+  filename: string;
+  predictions: Prediction[];
+  image_width: number;
+  image_height: number;
 }
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -21,8 +36,9 @@ export const wasteAiApi = {
         throw new Error('Network response was not ok');
       }
 
-      const data: PredictResponse = await response.json();
-      return data;
+      const responseData: PredictResponse = await response.json();
+      return responseData;
+
     } catch (error) {
       console.error('Error in predictWaste API:', error);
       throw error;

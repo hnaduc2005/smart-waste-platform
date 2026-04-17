@@ -256,6 +256,19 @@ services:
     networks:
       - ecocycle-network
 
+  waste-classifier:
+    build:
+      context: ../../backend
+      dockerfile: ai-services/waste-classifier/Dockerfile
+    image: ecocycle/waste-classifier:latest
+    container_name: ecocycle-waste-classifier
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - ecocycle-network
+
+
   # =========================================================
   # TOOLS (Optional)
   # =========================================================

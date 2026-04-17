@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class WasteClassifierModel:
     def __init__(self):
         self.model = None
-        self.load_model()
+        # Lazy loading: model is not loaded on startup
         
     def load_model(self):
         try:
@@ -28,7 +28,9 @@ class WasteClassifierModel:
 
     def predict(self, image_bytes: bytes):
         if self.model is None:
-            raise RuntimeError("Model is not initialized.")
+            self.load_model()
+            if self.model is None:
+                raise RuntimeError("Failed to load model. Cannot perform prediction.")
             
         try:
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -65,7 +67,11 @@ class WasteClassifierModel:
                         }
                     })
                     
-            return predictions
+            return {
+                "predictions": predictions,
+                "image_width": image.width,
+                "image_height": image.height
+            }
         except Exception as e:
             logger.error(f"Prediction error: {e}")
             raise e

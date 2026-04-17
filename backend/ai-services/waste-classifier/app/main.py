@@ -22,6 +22,14 @@ def read_root():
         "model_loaded": classifier_model.model is not None
     }
 
+@app.get("/health")
+def health_check():
+    return {
+        "status": "Healthy",
+        "service": "EcoCycle Waste Classifier API",
+        "model_loaded": classifier_model.model is not None
+    }
+
 @app.post("/predict")
 async def predict_waste(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
@@ -29,11 +37,13 @@ async def predict_waste(file: UploadFile = File(...)):
         
     try:
         contents = await file.read()
-        predictions = classifier_model.predict(contents)
+        result_dict = classifier_model.predict(contents)
         
         return JSONResponse(content={
             "filename": file.filename,
-            "predictions": predictions
+            "predictions": result_dict["predictions"],
+            "image_width": result_dict["image_width"],
+            "image_height": result_dict["image_height"]
         })
     except RuntimeError as re:
         raise HTTPException(status_code=503, detail=str(re))

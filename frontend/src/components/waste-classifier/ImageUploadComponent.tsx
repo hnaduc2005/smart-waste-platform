@@ -2,12 +2,15 @@ import { useState, useRef } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
 
+import type { PredictResponse } from '../../services/wasteAiApi';
+
 interface ImageUploadProps {
   onImageSelect: (file: File) => void;
   isLoading: boolean;
+  result?: PredictResponse | null;
 }
 
-export function ImageUploadComponent({ onImageSelect, isLoading }: ImageUploadProps) {
+export function ImageUploadComponent({ onImageSelect, isLoading, result }: ImageUploadProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,15 +85,47 @@ export function ImageUploadComponent({ onImageSelect, isLoading }: ImageUploadPr
         />
 
         {previewUrl ? (
-          <div className="relative w-full h-[320px] rounded-xl overflow-hidden shadow-2xl group">
+          <div className="relative w-full h-[320px] rounded-xl overflow-hidden shadow-2xl group flex items-center justify-center bg-black/40">
             {/* Background glow for the image */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent z-10 pointer-events-none"></div>
             
-            <img 
-              src={previewUrl} 
-              alt="Preview" 
-              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            />
+            <div className="relative max-w-full max-h-full inline-block">
+              <img 
+                src={previewUrl} 
+                alt="Preview" 
+                className="max-w-full max-h-[320px] object-contain transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+              />
+              
+              {result && result.predictions && result.predictions.map((p, i) => {
+                const left = (p.bounding_box.xmin / result.image_width) * 100;
+                const top = (p.bounding_box.ymin / result.image_height) * 100;
+                const width = ((p.bounding_box.xmax - p.bounding_box.xmin) / result.image_width) * 100;
+                const height = ((p.bounding_box.ymax - p.bounding_box.ymin) / result.image_height) * 100;
+                
+                const c = p.class_name.toLowerCase();
+                let colors = { border: 'border-orange-500', bg: 'bg-orange-500/20', badge: 'bg-orange-500' };
+                if (c === 'biodegradable') colors = { border: 'border-emerald-500', bg: 'bg-emerald-500/20', badge: 'bg-emerald-500' };
+                if (c === 'recyclable') colors = { border: 'border-cyan-500', bg: 'bg-cyan-500/20', badge: 'bg-cyan-500' };
+                if (c === 'special') colors = { border: 'border-red-500', bg: 'bg-red-500/20', badge: 'bg-red-500' };
+
+                return (
+                  <div 
+                    key={i}
+                    className={`absolute border-2 ${colors.border} ${colors.bg} z-20 shadow-[0_0_15px_rgba(0,0,0,0.2)] backdrop-blur-[1px]`}
+                    style={{
+                      left: `${left}%`,
+                      top: `${top}%`,
+                      width: `${width}%`,
+                      height: `${height}%`
+                    }}
+                  >
+                    <div className={`absolute top-0 left-0 ${colors.badge} text-white font-medium text-[10px] sm:text-xs px-2 py-0.5 rounded-br opacity-95 shadow-md`}>
+                      {p.class_name} {Math.round(p.confidence * 100)}%
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             
             {!isLoading && (
               <button 

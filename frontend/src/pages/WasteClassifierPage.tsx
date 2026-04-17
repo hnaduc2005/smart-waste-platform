@@ -56,7 +56,8 @@ export default function WasteClassifierPage() {
             <div className="flex-1 bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden shadow-inner flex flex-col pt-6 px-6 pb-8">
                <ImageUploadComponent 
                  onImageSelect={handleImageSelect} 
-                 isLoading={isLoading} 
+                 isLoading={isLoading}
+                 result={result}
                />
             </div>
           </div>
