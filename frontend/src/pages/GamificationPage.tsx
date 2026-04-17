@@ -1,27 +1,97 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trophy, Medal, Star, Flame, History, ChevronRight } from 'lucide-react';
 import FeedbackModal from '../components/common/FeedbackModal';
+import axios from 'axios';
+
+interface LeaderboardUser {
+  citizenId?: number;
+  citizenName?: string;
+  totalPoints?: number;
+}
+
+interface TopUser {
+  rank: number;
+  name: string;
+  points: number;
+  avatar: string;
+}
+
+interface TransactionHistory {
+  id?: number;
+  reason?: string;
+  amount: number;
+  createdAt: string;
+}
+
+interface Transaction {
+  id: number;
+  title: string;
+  weight: string;
+  points: string;
+  date: string;
+  type: 'earn' | 'spend';
+}
 
 export default function GamificationPage() {
-  // Mock dữ liệu tạm thời để thể hiện UI (Giai đoạn 4)
-  const currentPoints = 1250;
-  
-  const topUsers = [
-    { rank: 1, name: "Hoàng Đức", points: 4500, avatar: "https://i.pravatar.cc/150?u=1" },
-    { rank: 2, name: "Nguyễn Văn A", points: 3200, avatar: "https://i.pravatar.cc/150?u=2" },
-    { rank: 3, name: "Trần Thị B", points: 2800, avatar: "https://i.pravatar.cc/150?u=3" },
-    { rank: 4, name: "Lê Hoàng C", points: 2100, avatar: "https://i.pravatar.cc/150?u=4" },
-    { rank: 5, name: "Phạm Văn D", points: 1950, avatar: "https://i.pravatar.cc/150?u=5" },
-  ];
+  const [currentPoints, setCurrentPoints] = useState<number>(0);
+  const [topUsers, setTopUsers] = useState<TopUser[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
 
-  const transactions = [
-    { id: 1, title: "Phân loại Nhựa", weight: "5kg", points: "+50", date: "Vừa xong", type: "earn" },
-    { id: 2, title: "Đổi Voucher Giảm Giá", weight: "", points: "-200", date: "Hôm qua", type: "spend" },
-    { id: 3, title: "Phân loại Hữu cơ", weight: "12kg", points: "+120", date: "3 ngày trước", type: "earn" },
-  ];
+  useEffect(() => {
+    // 1. Lấy dữ liệu Bảng Xếp Hạng (Leaderboard) thực tế từ Backend
+    axios.get('http://localhost:8084/api/v1/rewards/leaderboard')
+      .then(res => {
+        const leaderData: TopUser[] = res.data.map((user: LeaderboardUser, idx: number) => ({
+          rank: idx + 1,
+          name: user.citizenName || 'Người chơi ẩn danh',
+          points: user.totalPoints || 0,
+          // Avatar sinh tự động ngẫu nhiên dựa trên citizenId
+          avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${user.citizenId || idx}`
+        }));
+        setTopUsers(leaderData);
+      })
+      .catch((err: unknown) => {
+        console.error("Lỗi lấy Leaderboard:", err);
+        // Fallback UI nếu server sập
+        setTopUsers([
+          { rank: 1, name: "Hoàng Đức (Mẫu)", points: 4500, avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=1" },
+          { rank: 2, name: "Nguyễn Văn A", points: 3000, avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=2" }
+        ]);
+      });
 
-  // Trạng thái bật/tắt Modal Feedback Demo
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+    // 2. Lấy dữ liệu Lịch sử Điểm số (History)
+    const userId = localStorage.getItem('userId');
+    
+    // Nếu có đăng nhập User ID thật sự thì lấy API
+    if (userId) {
+      axios.get(`http://localhost:8084/api/v1/rewards/${userId}/history`)
+        .then(res => {
+          const txData: Transaction[] = res.data.map((item: TransactionHistory, idx: number) => ({
+            id: item.id || idx,
+            title: item.reason || (item.amount > 0 ? "Nhận thưởng thu gom" : "Quy đổi điểm"),
+            weight: "", 
+            points: item.amount > 0 ? `+${item.amount}` : `${item.amount}`,
+            date: new Date(item.createdAt).toLocaleDateString('vi-VN'),
+            type: item.amount > 0 ? 'earn' : 'spend'
+          }));
+          setTransactions(txData);
+
+          // Tính tổng số điểm hiện có của User (cho UI chính)
+          const total = res.data.reduce((acc: number, curr: TransactionHistory) => acc + curr.amount, 0);
+          setCurrentPoints(total);
+        })
+        .catch((err: unknown) => console.error("Lỗi lấy History:", err));
+    } else {
+      // Mock Demo Data nếu người dùng chưa mảng userId trong Storage
+      setCurrentPoints(1250);
+      setTransactions([
+        { id: 1, title: "Phân loại Nhựa", weight: "5kg", points: "+50", date: "Vừa xong", type: "earn" },
+        { id: 2, title: "Đổi Voucher Gojek", weight: "", points: "-200", date: "Hôm qua", type: "spend" },
+        { id: 3, title: "Phân loại Hữu cơ", weight: "12kg", points: "+120", date: "3 ngày trước", type: "earn" },
+      ]);
+    }
+  }, []);
 
   return (
     <div className="w-full relative z-10 flex flex-col md:flex-row gap-6 p-4 pt-10">
@@ -141,11 +211,20 @@ export default function GamificationPage() {
       <FeedbackModal 
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
-        onSubmit={(rating, comment) => {
-          console.log("Đã vứt rating lên Server:", rating, comment);
-          alert(`Cảm ơn bạn đã đánh giá ${rating} sao!`);
+        onSubmit={async (rating, comment) => {
+          try {
+            await axios.post('http://localhost:8085/api/v1/feedback', {
+              requestId: "11111111-2222-3333-4444-555555555555", // Mock ID cho Demo
+              rating: rating,
+              comment: comment
+            });
+            console.log("Đã gửi rating lên Server thành công:", rating, comment);
+          } catch (error) {
+            console.error("Lỗi khi gửi đánh giá:", error);
+            // Vẫn cho phép hoàn thành UI UX kể cả khi văng lỗi nếu đang build offline
+          }
         }}
-        collectorName="Anh Lê Bảo Tín - Tài xế 59H1"
+        collectorName="Anh Lê Bảo Tín (59H1)"
       />
     </div>
   );

@@ -31,31 +31,42 @@ const BADGE_STYLES = {
   info:    { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
 };
 
-// ── Animated Mini Bar Chart ────────────────────────────────────────
-function BarChart() {
-  const bars = [40, 65, 30, 80, 55, 90, 45];
-  const days = ['T2','T3','T4','T5','T6','T7','CN'];
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
+
+const chartData = [
+  { name: 'T2', points: 40, weight: 1.2 },
+  { name: 'T3', points: 65, weight: 2.1 },
+  { name: 'T4', points: 30, weight: 0.8 },
+  { name: 'T5', points: 80, weight: 2.5 },
+  { name: 'T6', points: 55, weight: 1.5 },
+  { name: 'T7', points: 90, weight: 3.0 },
+  { name: 'CN', points: 45, weight: 1.1 },
+];
+
+function CustomChart() {
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120, padding: '0 4px' }}>
-        {bars.map((h, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-            <div style={{
-              width: '100%', height: `${h}%`,
-              background: 'linear-gradient(to top, #22c55e, #14b8a6)',
-              borderRadius: '4px 4px 0 0', opacity: 0.7,
-              animationName: 'barGrow', animationDuration: '0.8s',
-              animationDelay: `${i * 0.1}s`, animationFillMode: 'both',
-              animationTimingFunction: 'ease-out',
-              transformOrigin: 'bottom',
-            }} />
-          </div>
-        ))}
-        <style>{`@keyframes barGrow { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 0.7; } }`}</style>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-        {days.map(d => <span key={d}>{d}</span>)}
-      </div>
+    <div style={{ width: '100%', height: 250 }}>
+      <ResponsiveContainer>
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorPoints" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
+              <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+          <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+          <Tooltip 
+            contentStyle={{ backgroundColor: 'rgba(17, 24, 39, 0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
+            itemStyle={{ color: '#22c55e', fontWeight: 'bold' }}
+            cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+          />
+          <Area type="monotone" dataKey="points" name="Điểm thưởng" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorPoints)" />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -215,14 +226,17 @@ export default function DashboardPage() {
         </div>
 
         {/* Chart + Activity */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
           <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>📈 Hoạt động 7 ngày qua</p>
-            <BarChart />
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
+              <span>📈 Biểu đồ Điểm thưởng (Recharts AreaChart)</span>
+              <span style={{ fontSize: 12, color: 'var(--green-400)', background: 'rgba(34,197,94,0.1)', padding: '4px 12px', borderRadius: 12 }}>+24% Tuần này</span>
+            </p>
+            <CustomChart />
           </div>
 
           <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
-            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>🕐 Hoạt động gần đây</p>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>🏆 Bảng Xếp Hạng Gần Đây</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {ACTIVITIES.map((a, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
