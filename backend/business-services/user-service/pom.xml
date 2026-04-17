@@ -63,6 +63,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
+        <!-- Common Library for Events -->
+        <dependency>
+            <groupId>com.ecocycle</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
