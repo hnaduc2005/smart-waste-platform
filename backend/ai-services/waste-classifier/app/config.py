@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     MODEL_PATH: str = os.path.join(MODEL_DIR, "best.pt")
     
     # Model download configuration
-    MODEL_DRIVE_ID: str = "" # Add this securely via .env file or environment variable
+    MODEL_DRIVE_ID: str = "16QT2ZyF1LCkw99bbpXX0opQMRYStbpnI" 
     
     # Prediction settings
     CONFIDENCE_THRESHOLD: float = 0.5
