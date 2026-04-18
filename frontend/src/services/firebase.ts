@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, MessagePayload } from "firebase/messaging";
 
 // Cấu hình Firebase cho Web (Sử dụng biến môi trường của Vite)
 // Bạn cần tạo tài khoản Firebase và copy các thông số này vào file .env ở thư mục frontend
@@ -22,7 +22,7 @@ export const messaging = app ? getMessaging(app) : null;
  * Hàm hỗ trợ lấy Token của Trình duyệt (Dùng để gửi lên Server)
  * @param vapidKey Đây là Web Push Certificate Key (lấy trong Firebase Console -> Project Settings -> Cloud Messaging)
  */
-export const requestFirebaseToken = async (vapidKey) => {
+export const requestFirebaseToken = async (vapidKey: string) => {
   if (!messaging) {
     console.warn('Firebase is not initialized. Notifications are disabled.');
     return null;
@@ -46,7 +46,7 @@ export const requestFirebaseToken = async (vapidKey) => {
 /**
  * Hàm lắng nghe thông báo khi Web đang mở (Foreground)
  */
-export const onMessageListener = (callback) => {
+export const onMessageListener = (callback: (payload: MessagePayload) => void) => {
   if (!messaging) return () => {};
   return onMessage(messaging, (payload) => {
     callback(payload);
