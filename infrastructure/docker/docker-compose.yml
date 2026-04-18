@@ -43,7 +43,7 @@ services:
       retries: 5
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.4
     container_name: ecocycle-zookeeper
     restart: always
     environment:
@@ -55,7 +55,7 @@ services:
       - ecocycle-network
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.4
     container_name: ecocycle-kafka
     restart: always
     depends_on:

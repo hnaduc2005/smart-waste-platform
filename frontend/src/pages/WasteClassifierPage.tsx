@@ -6,20 +6,19 @@ import { wasteAiApi } from '../services/wasteAiApi';
 import type { PredictResponse } from '../services/wasteAiApi';
 
 export default function WasteClassifierPage() {
-  const [result, setResult] = useState<PredictResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<PredictResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleImageSelect = async (file: File) => {
     setIsLoading(true);
-    setError(null);
     setResult(null);
-    
+    setError(null);
     try {
-      const apiResult = await wasteAiApi.predictWaste(file);
-      setResult(apiResult);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi kết nối máy chủ AI. Vui lòng thử lại.');
+      const data = await wasteAiApi.predictWaste(file);
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định.');
     } finally {
       setIsLoading(false);
     }
@@ -38,7 +37,7 @@ export default function WasteClassifierPage() {
           EcoCycle AI Scanner
         </h1>
         <p className="text-slate-400 max-w-2xl mx-auto text-lg leading-relaxed">
-          Phân loại rác tự động cực chuẩn xác. Kéo thả bức ảnh của bạn vào hệ thống, 
+          Phân loại rác tự động cực chuẩn xác. Kéo thả bức ảnh của bạn vào hệ thống,{' '}
           AI sẽ nhận diện và đưa ra chỉ dẫn xử lý bảo vệ môi trường.
         </p>
       </div>
@@ -46,7 +45,7 @@ export default function WasteClassifierPage() {
       {/* Interface Wrapper - Modern Glassmorphism panel */}
       <div className="bg-slate-800/40 backdrop-blur-2xl border border-slate-700/50 rounded-3xl p-6 md:p-8 shadow-2xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-          
+
           {/* Upload Section */}
           <div className="flex flex-col h-full">
             <div className="flex items-center space-x-2 text-slate-300 mb-6 font-semibold tracking-wide uppercase text-sm">
@@ -54,11 +53,11 @@ export default function WasteClassifierPage() {
               <span>Tải Ảnh Phân Loại</span>
             </div>
             <div className="flex-1 bg-slate-900/50 rounded-2xl border border-slate-700/50 overflow-hidden shadow-inner flex flex-col pt-6 px-6 pb-8">
-               <ImageUploadComponent 
-                 onImageSelect={handleImageSelect} 
-                 isLoading={isLoading}
-                 result={result}
-               />
+              <ImageUploadComponent
+                onImageSelect={handleImageSelect}
+                isLoading={isLoading}
+                result={result}
+              />
             </div>
           </div>
 
@@ -68,7 +67,7 @@ export default function WasteClassifierPage() {
               <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs">2</span>
               <span>Phân Tích AI</span>
             </div>
-            
+
             <div className="flex-1 flex flex-col justify-center">
               {!result && !isLoading && !error && (
                 <div className="h-full min-h-[320px] flex flex-col items-center justify-center text-center bg-slate-900/30 rounded-2xl border border-dashed border-slate-700 p-8 shadow-inner">

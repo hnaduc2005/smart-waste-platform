@@ -17,6 +17,13 @@
     <description>Microservice xác thực, phân quyền và quản lý JWT Token.</description>
 
     <dependencies>
+        <!-- Common Library (Shared Events/DTOs) -->
+        <dependency>
+            <groupId>com.ecocycle</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Web: REST API -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

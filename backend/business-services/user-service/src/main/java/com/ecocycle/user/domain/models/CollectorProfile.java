@@ -18,6 +18,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CollectorProfile extends UserProfileBase {
 
+    @Column(name = "full_name")
+    private String fullName;
+
     @ManyToOne
     @JoinColumn(name = "enterprise_id")
     private EnterpriseProfile enterprise;

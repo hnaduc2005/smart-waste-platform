@@ -32,3 +32,6 @@ env/
 .env.local
 .env.development
 .env.production
+
+# Firebase Credentials
+service-account-key.json

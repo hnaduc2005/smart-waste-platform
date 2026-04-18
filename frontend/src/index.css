@@ -1,20 +1,77 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* ── CSS Variables ── */
 :root {
-  --text: #08060d;
-  --bg: #f9fafb;
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --teal-400:  #2dd4bf;
+  --teal-500:  #14b8a6;
+
+  --bg-base:   #080f0d;
+  --bg-card:   rgba(255, 255, 255, 0.04);
+  --bg-input:  rgba(255, 255, 255, 0.06);
+  --border:    rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(74, 222, 128, 0.5);
+
+  --text-primary:   #f1f5f2;
+  --text-secondary: #94a3a0;
+  --text-muted:     #5a6b65;
+
+  --gradient-brand: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
+  --shadow-md:      0 4px 24px rgba(0,0,0,0.5);
+  --shadow-glow:    0 0 40px rgba(34, 197, 94, 0.12);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #f3f4f6;
-    --bg: #111827;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
 
 body {
-  margin: 0;
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
+
+#root { min-height: 100vh; }
+
+/* Animated glow background */
+.page-bg {
+  position: fixed; inset: 0; z-index: -1;
+  background: var(--bg-base);
+  overflow: hidden;
+  pointer-events: none;
+}
+.page-bg::before {
+  content: '';
+  position: absolute;
+  top: -20%; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 600px;
+  background: radial-gradient(ellipse, rgba(34,197,94,0.13) 0%, rgba(20,184,166,0.06) 40%, transparent 70%);
+  animation: breathe 8s ease-in-out infinite;
+}
+.page-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -10%; right: -5%;
+  width: 600px; height: 600px;
+  background: radial-gradient(ellipse, rgba(20,184,166,0.08) 0%, transparent 60%);
+  animation: breathe 10s ease-in-out infinite reverse;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }

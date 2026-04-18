@@ -18,10 +18,6 @@ public class WasteEventConsumer {
     public void consumeWasteReportEvent(String messagePayload) {
         log.info("📥 [KAFKA PIPELINE] - Hút dữ liệu từ Khối 2 (Có người báo rác): {}", messagePayload);
         
-        // TODO (Nhiệm vụ tiếp theo của bạn):
-        // 1. Dùng ObjectMapper (Jackson) chuyển chuỗi 'messagePayload' Json sang Java Object
-        // 2. Chọc vào Database (Repository) để cộng dồn (+1) vào bảng Thống kê "BÁO CÁO TỪ NGƯỜI DÂN"
-        // 3. Web Dashboard gọi API sẽ thấy con số này nhảy lên tự động!
     }
 
     /**
@@ -32,9 +28,5 @@ public class WasteEventConsumer {
     public void consumeWasteCollectedEvent(String messagePayload) {
         log.info("🚚 [KAFKA PIPELINE] - Hút dữ liệu từ Khối 3 (Đã gom xong rác): {}", messagePayload);
 
-        // TODO (Nhiệm vụ tiếp theo của bạn):
-        // 1. Parse JSON lấy ra số 'Kilogram' và loại rác (Hữu cơ hay Tái chế).
-        // 2. Cộng dồn số Kilogram đó vào biến Tổng của khu vực (Quận) tương ứng.
-        // 3. Lúc này biểu đồ AreaChart (Thống Kê Khối Lượng Theo Tuần) trên ReactJS sẽ biến động mượt mà!
     }
 }

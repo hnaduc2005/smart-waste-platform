@@ -1,24 +1,58 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import DashboardPage from './pages/DashboardPage';
 import WasteClassifierPage from './pages/WasteClassifierPage';
+import FirebasePushNotification from './components/common/FirebasePushNotification';
+import GamificationPage from './pages/GamificationPage';
 
-function App() {
-  return (
-    <div className="min-h-screen font-sans bg-slate-900 text-slate-100 flex flex-col relative overflow-hidden">
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none animate-pulse"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/20 blur-[120px] rounded-full mix-blend-screen pointer-events-none"></div>
-      <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full mix-blend-screen pointer-events-none"></div>
-      
-      {/* Main Content Area Container */}
-      <main className="flex-1 w-full max-w-6xl mx-auto py-10 px-4 sm:px-6 relative z-10 flex flex-col items-center justify-center min-h-[90vh]">
-        <WasteClassifierPage />
-      </main>
-      
-      {/* Minimal Footer */}
-      <footer className="text-center py-6 text-slate-500 text-sm z-10">
-        <p>Powered by YOLOv11 & React 19 • Smart Waste Platform</p>
-      </footer>
-    </div>
-  );
+/** Route guard: redirect to /login if not authenticated */
+function PrivateRoute({ children }) {
+  const { isLoggedIn } = useAuth();
+  return isLoggedIn ? children : <Navigate to="/login" replace />;
 }
 
-export default App;
+/** Route guard: redirect to /dashboard if already logged in */
+function PublicOnlyRoute({ children }) {
+  const { isLoggedIn } = useAuth();
+  return isLoggedIn ? <Navigate to="/dashboard" replace /> : children;
+}
+
+export default function App() {
+  return (
+    <>
+      <FirebasePushNotification />
+      <Routes>
+      {/* Default: redirect to login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Public routes (redirect to dashboard if already logged in) */}
+      <Route path="/login" element={
+        <PublicOnlyRoute><LoginPage /></PublicOnlyRoute>
+      } />
+      <Route path="/register" element={
+        <PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>
+      } />
+      <Route path="/forgot-password" element={
+        <PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>
+      } />
+
+      {/* Protected routes */}
+      <Route path="/dashboard" element={
+        <PrivateRoute><DashboardPage /></PrivateRoute>
+      } />
+      <Route path="/waste-classifier" element={
+        <PrivateRoute><WasteClassifierPage /></PrivateRoute>
+      } />
+      <Route path="/gamification" element={
+        <PrivateRoute><GamificationPage /></PrivateRoute>
+      } />
+
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+    </>
+  );
+}
