@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CitizenRequestView } from '../components/CitizenRequestView';
 import { MapDispatcher } from '../components/MapDispatcher';
 import { CollectorTasksView } from '../components/CollectorTasksView';
+import { rewardApi } from '../services/rewardApi';
 const NAV_ITEMS = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true },
   { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests' },
@@ -15,9 +16,9 @@ const NAV_ITEMS = [
   { icon: '⚙️', label: 'Cài đặt', id: 'settings' },
 ];
 
-const STATS = [
+const STATS_BASE = [
   { icon: '♻️', color: 'rgba(34,197,94,0.12)',  value: '24',     label: 'Lần thu gom', trend: '↑ +3 tháng này' },
-  { icon: '🏆', color: 'rgba(20,184,166,0.12)',  value: '1,240',  label: 'Điểm tích lũy', trend: '↑ +50 hôm nay' },
+  { icon: '🏆', color: 'rgba(20,184,166,0.12)',  value: '...',  label: 'Điểm tích lũy', trend: '... hôm nay' },
   { icon: '⚖️', color: 'rgba(59,130,246,0.12)',  value: '87kg',   label: 'Rác tái chế', trend: '↑ +12kg tháng này' },
   { icon: '🌱', color: 'rgba(234,179,8,0.12)',   value: 'Top 5%', label: 'Xếp hạng khu vực', trend: '↑ Tăng 8 bậc' },
 ];
@@ -80,6 +81,20 @@ export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('overview');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [totalPoints, setTotalPoints] = useState<number>(0);
+
+  useEffect(() => {
+    if (user?.userId) {
+      rewardApi.getHistory(user.userId).then(res => {
+        const points = res.reduce((acc, curr) => acc + curr.points, 0);
+        setTotalPoints(points);
+      }).catch(err => console.log('Không lấy được điểm:', err));
+    }
+  }, [user]);
+
+  // Merge dynamic points into stats
+  const STATS = [...STATS_BASE];
+  STATS[1].value = totalPoints.toLocaleString();
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -163,14 +178,14 @@ export default function DashboardPage() {
                 {user?.username || '...'}
               </div>
               <div style={{ fontSize: 11, color: 'var(--green-400)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                {roleMap[user?.role] || user?.role}
+                {user?.role ? (roleMap[user.role as keyof typeof roleMap] || user.role) : 'CITIZEN'}
               </div>
             </div>
             <button onClick={() => setShowLogoutModal(true)}
               title="Đăng xuất"
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: 4, borderRadius: 6, transition: 'all 150ms' }}
-              onMouseEnter={e => { e.target.style.color='#ef4444'; e.target.style.background='rgba(239,68,68,0.1)'; }}
-              onMouseLeave={e => { e.target.style.color='var(--text-muted)'; e.target.style.background='transparent'; }}>
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color='#ef4444'; (e.currentTarget as HTMLElement).style.background='rgba(239,68,68,0.1)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color='var(--text-muted)'; (e.currentTarget as HTMLElement).style.background='transparent'; }}>
               ⏻
             </button>
           </div>
@@ -220,12 +235,12 @@ export default function DashboardPage() {
         <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
           {[
-            { icon: '📍', label: 'Đặt lịch thu gom' },
-            { icon: '🤖', label: 'Nhận diện rác AI' },
-            { icon: '🗺️', label: 'Xem bản đồ' },
-            { icon: '🏅', label: 'Đổi điểm thưởng' },
+            { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests') },
+            { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier') },
+            { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map') },
+            { icon: '🏅', label: 'Đổi điểm thưởng', action: () => navigate('/gamification') },
           ].map(a => (
-            <div key={a.label} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
+            <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}>
               <div style={{ fontSize: 28, marginBottom: 10 }}>{a.icon}</div>
@@ -253,7 +268,7 @@ export default function DashboardPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>{a.title}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 10, background: BADGE_STYLES[a.badge].bg, color: BADGE_STYLES[a.badge].color, fontSize: 10, fontWeight: 700 }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 10, background: BADGE_STYLES[a.badge as keyof typeof BADGE_STYLES].bg, color: BADGE_STYLES[a.badge as keyof typeof BADGE_STYLES].color, fontSize: 10, fontWeight: 700 }}>
                         {a.sub.split('·')[0]}
                       </span>
                       {' · '}{a.sub.split('·')[1]}

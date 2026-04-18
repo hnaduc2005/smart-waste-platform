@@ -1,6 +1,8 @@
 import React, { useState, useRef, ChangeEvent, DragEvent } from 'react';
 import { UploadCloud, Search, Trash2, Tag, RefreshCw, AlertCircle } from 'lucide-react';
 import { wasteAiApi, PredictResponse, Prediction } from '../../services/wasteAiApi';
+import { collectionApi } from '../../services/collectionApi';
+import { useAuth } from '../../context/AuthContext';
 import './WasteDetector.css';
 
 export default function WasteDetector() {
@@ -11,6 +13,10 @@ export default function WasteDetector() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PredictResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  const { user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +54,7 @@ export default function WasteDetector() {
     setError(null);
     setSelectedFile(file);
     setResult(null); // Clear previous results
+    setSubmitSuccess(false);
     
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -77,8 +84,44 @@ export default function WasteDetector() {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    setSubmitSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateRequest = async () => {
+    if (!user?.userId || !result) return;
+    setSubmitting(true);
+    try {
+      // Map YOLO class to our internal waste type enum. Fallback to RECYCLABLE
+      let mainType = 'RECYCLABLE';
+      const predictions = result.predictions || [];
+      if (predictions.some(p => p.class_name.toLowerCase().includes('organic'))) mainType = 'ORGANIC';
+      else if (predictions.some(p => p.class_name.toLowerCase().includes('battery') || p.class_name.toLowerCase().includes('hazardous'))) mainType = 'HAZARDOUS';
+
+      // We need GPS. Let's try to get it.
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const location = `${position.coords.latitude},${position.coords.longitude}`;
+          await collectionApi.createRequest({
+            citizenId: user.userId,
+            type: mainType,
+            location: location,
+            imageUrl: 'https://via.placeholder.com/300?text=AI+Processed+Image' // Idealy we upload img, but use placeholder for now
+          });
+          setSubmitSuccess(true);
+          setSubmitting(false);
+        },
+        (err) => {
+          alert('Vui lòng bật tính năng định vị GPS để tạo yêu cầu.');
+          setSubmitting(false);
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      alert('Tạo yêu cầu thất bại');
+      setSubmitting(false);
     }
   };
 
@@ -228,6 +271,24 @@ export default function WasteDetector() {
                   </div>
                 </div>
               ))}
+              
+              {/* Call to action section */}
+              {result && result.predictions && result.predictions.length > 0 && !submitSuccess && (
+                <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(34,197,94,0.1)', borderRadius: '12px', border: '1px solid var(--green-500)', textAlign: 'center' }}>
+                  <h4 style={{ marginBottom: '8px', color: 'var(--green-400)' }}>Bạn muốn thu gom số rác này?</h4>
+                  <button onClick={handleCreateRequest} disabled={submitting} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                    {submitting ? 'Đang tạo yêu cầu...' : 'Tạo Yêu cầu Thu gom'}
+                  </button>
+                </div>
+              )}
+              
+              {submitSuccess && (
+                <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(59,130,246,0.1)', borderRadius: '12px', border: '1px solid #3b82f6', textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>✅</div>
+                  <h4 style={{ color: '#60a5fa' }}>Tạo yêu cầu thành công!</h4>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Bạn có thể theo dõi tiến độ ở trang Tổng quan.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

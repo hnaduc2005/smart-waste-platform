@@ -1,13 +1,27 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { tokenStore } from '../services/tokenStore';
 import { authApi } from '../services/authApi';
 
-const AuthContext = createContext(null);
+interface User {
+  userId: string;
+  username: string;
+  role: string;
+}
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => tokenStore.getUser());
+interface AuthContextType {
+  user: User | null;
+  login: (credentials: any) => Promise<any>;
+  register: (data: any) => Promise<any>;
+  logout: () => Promise<void>;
+  isLoggedIn: boolean;
+}
 
-  const login = useCallback(async (credentials) => {
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(() => tokenStore.getUser());
+
+  const login = useCallback(async (credentials: any) => {
     const res = await authApi.login(credentials);
     tokenStore.setTokens(res.accessToken, res.refreshToken, {
       userId: res.userId, username: res.username, role: res.role,
@@ -16,7 +30,7 @@ export function AuthProvider({ children }) {
     return res;
   }, []);
 
-  const register = useCallback(async (data) => {
+  const register = useCallback(async (data: any) => {
     const res = await authApi.register(data);
     tokenStore.setTokens(res.accessToken, res.refreshToken, {
       userId: res.userId, username: res.username, role: res.role,
