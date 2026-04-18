@@ -5,7 +5,7 @@ importScripts("https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-comp
 // Dán chính xác cấu hình giống với file .env (ở dạng code thô Javascript vì Service worker không tự đọc được .env của Vite)
 const firebaseConfig = {
     // BẠN SẼ CẦN COPY SỐ LIỆU TỪ .env CHÉP VÀO ĐÂY TRƯỚC KHI DEPLOY
-    apiKey: "AIzaSyAJB_G4kEnX2AmfbYMpvN2PJSO4672EdNc",
+    apiKey: "AIzaSyCma7M-YKfq-MZVo3X7kRWM2bhrHgFmZrU",
     authDomain: "ecocycle-smart-waste.firebaseapp.com",
     projectId: "ecocycle-smart-waste",
     storageBucket: "ecocycle-smart-waste.firebasestorage.app",
