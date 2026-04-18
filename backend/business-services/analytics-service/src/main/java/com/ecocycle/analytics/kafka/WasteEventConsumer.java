@@ -44,21 +44,21 @@ public class WasteEventConsumer {
     }
 
     
-    @KafkaListener(topics = "waste_collected", groupId = "ecocycle-analytics-group")
+    @KafkaListener(topics = "waste.collection.completed", groupId = "ecocycle-analytics-group")
     public void consumeWasteCollectedEvent(String messagePayload) {
         log.info("🚚 [KAFKA PIPELINE] - Hút dữ liệu từ Khối 3 (Đã gom xong rác): {}", messagePayload);
         try {
-            WasteCollectedEventDto event = objectMapper.readValue(messagePayload, WasteCollectedEventDto.class);
+            com.ecocycle.common.events.CollectionCompletedEvent event = objectMapper.readValue(messagePayload, com.ecocycle.common.events.CollectionCompletedEvent.class);
             WasteAnalyticsRecord record = new WasteAnalyticsRecord();
             record.setEventType("COLLECTED");
-            record.setDistrict(event.getDistrict() != null ? event.getDistrict() : "Unknown");
+            record.setDistrict("Unknown"); // District not in event currently
             record.setWasteType(event.getWasteType() != null ? event.getWasteType() : "MIXED");
-            record.setWeight(event.getTotalWeight() != null ? event.getTotalWeight() : 0.0);
+            record.setWeight(event.getWeightInKg() != null ? event.getWeightInKg() : 0.0);
             record.setEventTimestamp(LocalDateTime.now());
             repository.save(record);
             log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện thu gom rác. ID={}", record.getId());
         } catch (Exception e) {
-            log.error("❌ Lỗi khi phân tích sự kiện waste_collected: {}", e.getMessage());
+            log.error("❌ Lỗi khi phân tích sự kiện waste.collection.completed: {}", e.getMessage());
         }
     }
 }

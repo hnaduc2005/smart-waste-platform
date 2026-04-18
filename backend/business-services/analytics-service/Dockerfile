@@ -2,7 +2,7 @@
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 COPY . .
-RUN mvn -pl common-lib,business-services/analytics-service -am install -DskipTests -q
+RUN --mount=type=cache,target=/root/.m2 mvn -pl common-lib,business-services/analytics-service -am install -DskipTests -q
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine

@@ -1,0 +1,9 @@
+**/.venv/
+**/venv/
+**/target/
+**/.idea/
+**/.git/
+**/*.jar
+**/*.class
+__pycache__/
+model_weights/yolo*.pt

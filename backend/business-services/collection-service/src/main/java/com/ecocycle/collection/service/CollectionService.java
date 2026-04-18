@@ -10,8 +10,10 @@ import com.ecocycle.collection.dto.CreateWasteRequestDto;
 import com.ecocycle.collection.repository.CollectionProofRepository;
 import com.ecocycle.collection.repository.TaskAssignmentRepository;
 import com.ecocycle.collection.repository.WasteRequestRepository;
+import com.ecocycle.common.events.CollectionCompletedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class CollectionService {
     private final WasteRequestRepository requestRepository;
     private final TaskAssignmentRepository taskRepository;
     private final CollectionProofRepository proofRepository;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Transactional
     public WasteRequest createWasteRequest(CreateWasteRequestDto dto) {
@@ -93,9 +96,21 @@ public class CollectionService {
         proof.setPhotoUrl(dto.getPhotoUrl());
         proof.setWeight(dto.getWeight());
 
-        // Here we could also trigger a Kafka event to reward points to the citizen
-        // e.g. kafkaTemplate.send("waste-collected-event", ...)
+        CollectionProof savedProof = proofRepository.save(proof);
 
-        return proofRepository.save(proof);
+        // Trigger a Kafka event to reward points to the citizen
+        CollectionCompletedEvent event = CollectionCompletedEvent.builder()
+                .wasteRequestId(request.getId().toString())
+                .citizenId(request.getCitizenId().toString())
+                .collectorId(task.getCollectorId().toString())
+                .wasteType(request.getType().name())
+                .weightInKg(dto.getWeight())
+                .completedAt(java.time.Instant.now())
+                .build();
+                
+        kafkaTemplate.send("waste.collection.completed", event);
+        log.info("Emitted CollectionCompletedEvent for request {}", request.getId());
+
+        return savedProof;
     }
 }
