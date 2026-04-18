@@ -5,7 +5,7 @@ spring:
   application:
     name: analytics-service
   datasource:
-    # Data Warehouse dạng SQL (tương lai có thể dùng TimescaleDB)
+
     url: jdbc:postgresql://localhost:5432/ecocycle_analytics
     username: postgres
     password: root
@@ -15,7 +15,7 @@ spring:
       ddl-auto: update
     show-sql: true
     
-  # Cấu hình Hút dữ kiện từ ống nước Kafka (Data Pipeline)
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
