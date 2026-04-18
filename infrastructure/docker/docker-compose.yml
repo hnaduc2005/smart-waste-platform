@@ -256,6 +256,53 @@ services:
     networks:
       - ecocycle-network
 
+  analytics-service:
+    build:
+      context: ../../backend
+      dockerfile: business-services/analytics-service/Dockerfile
+    image: ecocycle/analytics-service:latest
+    container_name: ecocycle-analytics
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/ecocycle_analytics
+      SPRING_DATASOURCE_USERNAME: ecocycle
+      SPRING_DATASOURCE_PASSWORD: ecocycle_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
+  enterprise-service:
+    build:
+      context: ../../backend
+      dockerfile: business-services/enterprise-service/Dockerfile
+    image: ecocycle/enterprise-service:latest
+    container_name: ecocycle-enterprise
+    restart: always
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/ecocycle_enterprise
+      SPRING_DATASOURCE_USERNAME: ecocycle
+      SPRING_DATASOURCE_PASSWORD: ecocycle_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
   waste-classifier:
     build:
       context: ../../backend
