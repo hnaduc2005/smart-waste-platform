@@ -51,6 +51,28 @@ spring:
           predicates:
             - Path=/api/v1/feedbacks/**
 
+        - id: device-token-route
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/v1/device-tokens/**
+
+        # === ENTERPRISE SERVICE (Khối 5) ===
+        - id: enterprise-service-route
+          uri: lb://enterprise-service
+          predicates:
+            - Path=/api/v1/enterprises/**
+
+        - id: vehicle-service-route
+          uri: lb://enterprise-service
+          predicates:
+            - Path=/api/v1/vehicles/**
+
+        # === ANALYTICS SERVICE (Khối 5) ===
+        - id: analytics-service-route
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/v1/analytics/**
+
       # GlobalFilter: Thêm CORS header cho Gateway
       globalcors:
         corsConfigurations:
