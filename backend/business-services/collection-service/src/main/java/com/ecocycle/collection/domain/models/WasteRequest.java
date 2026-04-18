@@ -28,8 +28,8 @@ public class WasteRequest {
     @Column(nullable = false)
     private WasteType type;
 
-    // Use String/Text/WKT to store Geometry/Point or specialized library like Hibernate-Spatial
-    @Column(columnDefinition = "geometry(Point,4326)")
+    // Lưu trữ tọa độ dưới dạng String cho đơn giản (VD: "10.8231,106.6297")
+    @Column(name = "location", nullable = false)
     private String location;
 
     @Column(name = "image_url")

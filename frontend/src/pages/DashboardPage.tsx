@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
+import { CitizenRequestView } from '../components/CitizenRequestView';
+import { MapDispatcher } from '../components/MapDispatcher';
+import { CollectorTasksView } from '../components/CollectorTasksView';
 const NAV_ITEMS = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true },
   { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests' },
+  { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks' },
   { icon: '🏆', label: 'Điểm thưởng', id: 'rewards' },
   { icon: '📊', label: 'Báo cáo', id: 'reports' },
   { icon: '🗺️', label: 'Bản đồ', id: 'map' },
@@ -177,7 +180,13 @@ export default function DashboardPage() {
       {/* ── Main content ── */}
       <main style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
 
-        {/* Welcome banner */}
+        {activeNav === 'requests' && <CitizenRequestView />}
+        {activeNav === 'map' && <MapDispatcher />}
+        {activeNav === 'tasks' && <CollectorTasksView />}
+
+        {activeNav === 'overview' && (
+          <>
+            {/* Welcome banner */}
         <div style={{
           background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(20,184,166,0.07) 100%)',
           border: '1px solid rgba(34,197,94,0.2)', borderRadius: 20,
@@ -256,6 +265,8 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+          </>
+        )}
         <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }`}</style>
       </main>
     </div>
