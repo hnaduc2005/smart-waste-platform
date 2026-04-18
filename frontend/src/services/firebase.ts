@@ -12,17 +12,21 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Khởi tạo Firebase độc lập
-export const app = initializeApp(firebaseConfig);
+// Khởi tạo Firebase độc lập nếu có config
+export const app = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'dummy' ? initializeApp(firebaseConfig) : null;
 
-// Khởi tạo Messaging để nhận Push Notification
-export const messaging = getMessaging(app);
+// Khởi tạo Messaging để nhận Push Notification (chỉ khi app được khởi tạo thành công)
+export const messaging = app ? getMessaging(app) : null;
 
 /**
  * Hàm hỗ trợ lấy Token của Trình duyệt (Dùng để gửi lên Server)
  * @param vapidKey Đây là Web Push Certificate Key (lấy trong Firebase Console -> Project Settings -> Cloud Messaging)
  */
 export const requestFirebaseToken = async (vapidKey) => {
+  if (!messaging) {
+    console.warn('Firebase is not initialized. Notifications are disabled.');
+    return null;
+  }
   try {
     const currentToken = await getToken(messaging, { vapidKey });
     if (currentToken) {
@@ -43,6 +47,7 @@ export const requestFirebaseToken = async (vapidKey) => {
  * Hàm lắng nghe thông báo khi Web đang mở (Foreground)
  */
 export const onMessageListener = (callback) => {
+  if (!messaging) return () => {};
   return onMessage(messaging, (payload) => {
     callback(payload);
   });
