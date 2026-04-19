@@ -26,6 +26,9 @@ public class WasteAnalyticsRecord {
     @Column(name = "event_timestamp", nullable = false)
     private LocalDateTime eventTimestamp;
 
+    @Column(name = "user_id")
+    private String userId;
+
     public WasteAnalyticsRecord() {}
 
     public Long getId() { return id; }
@@ -45,4 +48,7 @@ public class WasteAnalyticsRecord {
     
     public LocalDateTime getEventTimestamp() { return eventTimestamp; }
     public void setEventTimestamp(LocalDateTime eventTimestamp) { this.eventTimestamp = eventTimestamp; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 }
