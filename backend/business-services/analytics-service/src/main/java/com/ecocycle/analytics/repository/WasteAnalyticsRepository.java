@@ -16,4 +16,10 @@ public interface WasteAnalyticsRepository extends JpaRepository<WasteAnalyticsRe
     @Query("SELECT r.wasteType as name, SUM(r.weight) as total FROM WasteAnalyticsRecord r WHERE r.eventType = 'REPORTED' GROUP BY r.wasteType")
     List<Object[]> findWeeklyReportedWaste();
 
+    @Query("SELECT r.wasteType as name, SUM(r.weight) as value FROM WasteAnalyticsRecord r WHERE r.userId = :userId GROUP BY r.wasteType")
+    List<Map<String, Object>> findIndividualWasteDistribution(String userId);
+
+    @Query("SELECT SUM(r.weight) FROM WasteAnalyticsRecord r WHERE r.userId = :userId")
+    Double findTotalWeightByUser(String userId);
+
 }
