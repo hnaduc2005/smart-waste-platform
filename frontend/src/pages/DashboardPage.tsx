@@ -5,6 +5,8 @@ import { CitizenRequestView } from '../components/CitizenRequestView';
 import { MapDispatcher } from '../components/MapDispatcher';
 import { CollectorTasksView } from '../components/CollectorTasksView';
 import { rewardApi } from '../services/rewardApi';
+import { RewardView } from '../components/RewardView';
+import { CitizenReportView } from '../components/CitizenReportView';
 const NAV_ITEMS = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true },
   { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests' },
@@ -198,6 +200,8 @@ export default function DashboardPage() {
         {activeNav === 'requests' && <CitizenRequestView />}
         {activeNav === 'map' && <MapDispatcher />}
         {activeNav === 'tasks' && <CollectorTasksView />}
+        {activeNav === 'rewards' && <RewardView />}
+        {activeNav === 'reports' && <CitizenReportView />}
 
         {activeNav === 'overview' && (
           <>
