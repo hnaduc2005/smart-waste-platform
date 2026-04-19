@@ -23,4 +23,9 @@ public class AnalyticsController {
     public ResponseEntity<Map<String, Object>> getDashboardData() {
         return ResponseEntity.ok(analyticsService.getDashboardData());
     }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Map<String, Object>> getUserAnalytics(@PathVariable String userId) {
+        return ResponseEntity.ok(analyticsService.getUserAnalytics(userId));
+    }
 }
