@@ -20,7 +20,6 @@ public class AnalyticsService {
     public Map<String, Object> getDashboardData() {
         Map<String, Object> response = new HashMap<>();
 
-        
         List<Object[]> districtData = repository.findTotalWeightByDistrict();
         List<Map<String, Object>> districtList = new ArrayList<>();
         
@@ -34,11 +33,50 @@ public class AnalyticsService {
         }
         
         response.put("districts", districtList.isEmpty() ? getFallbackDistrictData() : districtList);
-        
-        
         response.put("weekly", getFallbackWeeklyData());
         
         return response;
+    }
+
+    public Map<String, Object> getUserAnalytics(String userId) {
+        Map<String, Object> response = new HashMap<>();
+
+        // 1. Personal Waste Distribution (Pie Chart)
+        List<Map<String, Object>> personalDistribution = repository.findIndividualWasteDistribution(userId);
+        response.put("personalDistribution", personalDistribution.isEmpty() ? getFallbackPersonalDistribution() : personalDistribution);
+
+        // 2. Metrics (Total weight, etc)
+        Double totalWeight = repository.findTotalWeightByUser(userId);
+        response.put("totalWeight", totalWeight != null ? totalWeight : 0.0);
+        response.put("co2Saved", (totalWeight != null ? totalWeight * 0.36 : 0.0)); 
+
+        // 3. Neighborhood Comparison (Bar Chart)
+        List<Object[]> districtAverages = repository.findTotalWeightByDistrict();
+        List<Map<String, Object>> comparison = new ArrayList<>();
+        
+        // Add User data first
+        comparison.add(Map.of("name", "Bạn", "user", totalWeight != null ? totalWeight : 0.0, "average", 0.0));
+        
+        for (Object[] row : districtAverages) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", row[0]);
+            Number districtTotal = (Number) row[1];
+            // Normalize district total to an "average" per household (simulated factor of 500)
+            map.put("average", districtTotal != null ? districtTotal.doubleValue() / 500 : 0.0);
+            comparison.add(map);
+        }
+        
+        response.put("comparisonData", comparison);
+
+        return response;
+    }
+
+    private List<Map<String, Object>> getFallbackPersonalDistribution() {
+        return List.of(
+            Map.of("name", "Tái chế", "value", 0.0),
+            Map.of("name", "Hữu cơ", "value", 0.0),
+            Map.of("name", "Độc hại", "value", 0.0)
+        );
     }
     
     private int calculateEfficiency() {
