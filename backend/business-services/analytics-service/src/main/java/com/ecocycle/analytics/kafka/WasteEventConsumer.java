@@ -36,8 +36,9 @@ public class WasteEventConsumer {
             record.setWasteType(event.getWasteType() != null ? event.getWasteType() : "MIXED");
             record.setWeight(event.getEstimatedWeight() != null ? event.getEstimatedWeight() : 0.0);
             record.setEventTimestamp(LocalDateTime.now());
+            record.setUserId(event.getUserId());
             repository.save(record);
-            log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện báo rác. ID={}", record.getId());
+            log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện báo rác. ID={}, UserID={}", record.getId(), record.getUserId());
         } catch (Exception e) {
             log.error("❌ Lỗi khi phân tích sự kiện waste_reported: {}", e.getMessage());
         }
@@ -55,8 +56,9 @@ public class WasteEventConsumer {
             record.setWasteType(event.getWasteType() != null ? event.getWasteType() : "MIXED");
             record.setWeight(event.getWeightInKg() != null ? event.getWeightInKg() : 0.0);
             record.setEventTimestamp(LocalDateTime.now());
+            record.setUserId(event.getCitizenId());
             repository.save(record);
-            log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện thu gom rác. ID={}", record.getId());
+            log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện thu gom rác. ID={}, CitizenID={}", record.getId(), record.getUserId());
         } catch (Exception e) {
             log.error("❌ Lỗi khi phân tích sự kiện waste.collection.completed: {}", e.getMessage());
         }
