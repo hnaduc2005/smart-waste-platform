@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Medal, Star, Flame, History, ChevronRight } from 'lucide-react';
+import { Trophy, Medal, Star, Flame, History, ChevronRight, CheckCircle2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import FeedbackModal from '../components/common/FeedbackModal';
 import { useAuth } from '../context/AuthContext';
 import { rewardApi, RewardHistory, LeaderboardEntry } from '../services/rewardApi';
@@ -23,10 +24,24 @@ interface Transaction {
 
 export default function GamificationPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentPoints, setCurrentPoints] = useState<number>(0);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState<boolean>(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [redeemSuccess, setRedeemSuccess] = useState(false);
+
+  const handleRedeem = () => {
+    setRedeemSuccess(true);
+    setTimeout(() => {
+      setRedeemSuccess(false);
+      setIsModalOpen(false);
+      // Giả lập trừ điểm
+      setCurrentPoints(prev => Math.max(0, prev - 500));
+    }, 2000);
+  };
 
   useEffect(() => {
     // 1. Fetch Leaderboard via Api
@@ -71,138 +86,247 @@ export default function GamificationPage() {
   }, [user?.userId]);
 
   return (
-    <div className="w-full relative z-10 flex flex-col md:flex-row gap-6 p-4 pt-10">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* CỘT TRÁI: ĐIỂM SỐ & LỊCH SỬ GIAO DỊCH */}
-      <div className="flex-1 flex flex-col gap-6">
+      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', padding: '40px 20px', gap: 24 }}>
         
-        {/* Card Điểm Số */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-900 rounded-3xl p-8 shadow-[0_8px_30px_rgb(16,185,129,0.2)] border border-emerald-500/30 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-emerald-400 opacity-20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
-          
-          <h2 className="text-emerald-100 font-medium tracking-wide flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-            ĐIỂM TÍCH LŨY CỦA BẠN
-          </h2>
-          
-          <div className="mt-4 flex items-end gap-3">
-            <span className="text-6xl font-black text-white tracking-tighter drop-shadow-md">
-              {currentPoints.toLocaleString()}
-            </span>
-            <span className="text-xl text-emerald-200 mb-2 font-medium">EcoP</span>
-          </div>
-          
-          <div className="mt-6 flex gap-3">
-            <button className="bg-white text-emerald-800 font-bold py-2.5 px-6 rounded-xl shadow-lg hover:bg-emerald-50 transition-colors">
-              Đổi Thưởng
-            </button>
-            {/* Nút giả lập hiện Feedback */}
-            <button 
-              onClick={() => setIsFeedbackOpen(true)}
-              className="bg-teal-800/50 text-white font-medium py-2.5 px-6 rounded-xl border border-teal-500/30 hover:bg-teal-700/50 transition-colors backdrop-blur-sm"
-            >
-              Demo Đánh Giá Thu Gom
-            </button>
-          </div>
-        </div>
+        {/* Nút Quay lại */}
+        <button 
+          onClick={() => navigate('/dashboard')}
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green-400)', 
+            background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 600,
+            alignSelf: 'flex-start', marginBottom: 8
+          }}
+        >
+          <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /> Quay lại Tổng quan
+        </button>
+      
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          {/* CỘT TRÁI: ĐIỂM SỐ & LỊCH SỬ GIAO DỊCH */}
+          <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            
+            {/* Card Điểm Số */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', 
+              borderRadius: 24, padding: 32, boxShadow: '0 8px 30px rgba(16,185,129,0.2)', 
+              border: '1px solid rgba(16,185,129,0.3)', position: 'relative', overflow: 'hidden'
+            }}>
+              <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, background: '#34d399', opacity: 0.2, borderRadius: '50%', filter: 'blur(40px)' }}></div>
+              
+              <h2 style={{ color: '#d1fae5', fontSize: 16, fontWeight: 600, letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                <Star size={20} fill="#facc15" color="#facc15" />
+                ĐIỂM TÍCH LŨY CỦA BẠN
+              </h2>
+              
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+                <span style={{ fontSize: 64, fontWeight: 900, color: 'white', letterSpacing: '-2px', lineHeight: 1 }}>
+                  {currentPoints.toLocaleString()}
+                </span>
+                <span style={{ fontSize: 20, color: '#a7f3d0', marginBottom: 8, fontWeight: 600 }}>EcoP</span>
+              </div>
+              
+              <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  style={{ 
+                    background: 'white', color: '#065f46', fontWeight: 700, padding: '12px 24px', 
+                    borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+                  }}
+                >
+                  Đổi Thưởng
+                </button>
+                <button 
+                  onClick={() => setIsFeedbackOpen(true)}
+                  style={{ 
+                    background: 'rgba(13, 148, 136, 0.5)', color: 'white', fontWeight: 600, padding: '12px 24px', 
+                    borderRadius: 12, border: '1px solid rgba(20, 184, 166, 0.3)', cursor: 'pointer', backdropFilter: 'blur(4px)' 
+                  }}
+                >
+                  Đánh Giá Thu Gom
+                </button>
+              </div>
+            </div>
 
-        {/* Lịch Sử Giao Dịch */}
-        <div className="bg-slate-800/80 backdrop-blur-md rounded-3xl p-6 border border-slate-700/50 shadow-xl flex-1">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold flex items-center gap-2 text-white">
-              <History className="w-5 h-5 text-blue-400" /> Lịch sử hoạt động
-            </h3>
-            <button className="text-sm font-medium text-slate-400 flex items-center hover:text-emerald-400 transition-colors">
-              Xem tất cả <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
-          </div>
+            {/* Lịch Sử Giao Dịch */}
+            <div style={{ background: 'var(--bg-card)', backdropFilter: 'blur(12px)', borderRadius: 24, padding: 24, border: '1px solid var(--border)', flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h3 style={{ fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, margin: 0, color: 'white' }}>
+                  <History size={20} color="#60a5fa" /> Lịch sử hoạt động
+                </h3>
+                {transactions.length > 3 && (
+                  <button 
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                    style={{ 
+                      fontSize: 14, fontWeight: 600, color: 'var(--green-400)', display: 'flex', alignItems: 'center', 
+                      background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', padding: '6px 14px', 
+                      borderRadius: 20, cursor: 'pointer', transition: 'all 0.2s' 
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(34,197,94,0.2)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(34,197,94,0.1)'}
+                  >
+                    {showAllHistory ? 'Thu gọn' : 'Xem tất cả'} 
+                    <ChevronRight size={16} style={{ marginLeft: 4, transform: showAllHistory ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.3s' }} />
+                  </button>
+                )}
+              </div>
 
-          <div className="flex flex-col gap-4">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-slate-600 transition-colors">
-                <div className="flex flex-col">
-                  <span className="text-white font-semibold text-base">{tx.title}</span>
-                  <div className="text-sm text-slate-400 mt-1 flex gap-2">
-                    {tx.weight && <span>{tx.weight} •</span>} 
-                    <span>{tx.date}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {transactions.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 20, background: 'rgba(255,255,255,0.01)' }}>
+                    <div style={{ width: 64, height: 64, background: 'rgba(255,255,255,0.04)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <History size={32} color="var(--text-muted)" />
+                    </div>
+                    <p style={{ color: 'white', fontWeight: 600, fontSize: 16, margin: '0 0 8px' }}>Chưa có hoạt động nào</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>Bạn chưa thực hiện giao dịch hay quy đổi điểm thưởng nào. Hãy tiếp tục phân loại rác nhé!</p>
                   </div>
-                </div>
-                <div className={`text-xl font-bold ${tx.type === 'earn' ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {tx.points}
-                </div>
+                ) : (
+                  (showAllHistory ? transactions : transactions.slice(0, 3)).map((tx) => (
+                    <div key={tx.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ color: 'white', fontWeight: 600, fontSize: 16 }}>{tx.title}</span>
+                        <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 8 }}>
+                          {tx.weight && <span>{tx.weight} •</span>} 
+                          <span>{tx.date}</span>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: tx.type === 'earn' ? '#4ade80' : '#f87171' }}>
+                        {tx.points}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
+            </div>
+          </div>
+
+          {/* CỘT PHẢI: LEADERBOARD BẢNG XẾP HẠNG */}
+          <div style={{ flex: '1 1 350px', background: 'var(--bg-card)', backdropFilter: 'blur(12px)', borderRadius: 24, padding: 24, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <h2 style={{ fontSize: 24, fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                <Trophy size={28} color="#facc15" /> TOP KỴ SĨ XANH
+              </h2>
+              <span style={{ fontSize: 12, background: 'rgba(255,255,255,0.1)', color: 'white', padding: '4px 12px', borderRadius: 20, fontWeight: 700 }}>Tháng Này</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {topUsers.map((user, idx) => {
+                const isTop3 = idx < 3;
+                let bgStyle = 'rgba(255,255,255,0.03)';
+                let borderStyle = '1px solid rgba(255,255,255,0.05)';
+                
+                if (idx === 0) {
+                  bgStyle = 'linear-gradient(90deg, rgba(234,179,8,0.1) 0%, rgba(202,138,4,0.05) 100%)';
+                  borderStyle = '1px solid rgba(234,179,8,0.3)';
+                } else if (idx === 1) {
+                  bgStyle = 'linear-gradient(90deg, rgba(203,213,225,0.1) 0%, rgba(148,163,184,0.05) 100%)';
+                  borderStyle = '1px solid rgba(203,213,225,0.3)';
+                } else if (idx === 2) {
+                  bgStyle = 'linear-gradient(90deg, rgba(180,83,9,0.1) 0%, rgba(146,64,14,0.05) 100%)';
+                  borderStyle = '1px solid rgba(180,83,9,0.3)';
+                }
+
+                return (
+                  <div key={user.rank} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 16, background: bgStyle, border: borderStyle }}>
+                    {/* Hạng */}
+                    <div style={{ width: 32, display: 'flex', justifyContent: 'center', fontWeight: 900, fontSize: 18 }}>
+                      {idx === 0 ? <Medal size={32} color="#facc15" style={{ filter: 'drop-shadow(0 0 5px rgba(250,204,21,0.5))' }} /> :
+                       idx === 1 ? <Medal size={28} color="#cbd5e1" /> :
+                       idx === 2 ? <Medal size={28} color="#d97706" /> :
+                       <span style={{ color: 'var(--text-muted)' }}>{user.rank}</span>}
+                    </div>
+
+                    {/* Avatar */}
+                    <div style={{ position: 'relative' }}>
+                      <img src={user.avatar} alt={user.name} style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', objectFit: 'cover' }} />
+                      {idx === 0 && <Flame size={20} color="#f97316" fill="#f97316" style={{ position: 'absolute', bottom: -4, right: -4 }} />}
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: 0, fontWeight: 700, color: isTop3 ? 'white' : 'var(--text-primary)', fontSize: 16 }}>{user.name}</h4>
+                      <p style={{ margin: 0, fontSize: 14, color: 'var(--green-400)', fontWeight: 600 }}>{user.points.toLocaleString()} EcoP</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
+        {/* Tích hợp Modal Feedback vào Trang */}
+        <FeedbackModal 
+          isOpen={isFeedbackOpen}
+          onClose={() => setIsFeedbackOpen(false)}
+          onSubmit={async (rating, comment) => {
+            try {
+              await axios.post('http://localhost:8085/api/v1/feedback', {
+                requestId: "11111111-2222-3333-4444-555555555555",
+                rating: rating,
+                comment: comment
+              });
+              console.log("Đã gửi rating lên Server thành công:", rating, comment);
+            } catch (error) {
+              console.error("Lỗi khi gửi đánh giá:", error);
+            }
+          }}
+          collectorName="Anh Lê Bảo Tín (59H1)"
+        />
 
-      {/* CỘT PHẢI: LEADERBOARD BẢNG XẾP HẠNG */}
-      <div className="w-full md:w-[400px] bg-slate-800/80 backdrop-blur-md rounded-3xl p-6 border border-slate-700/50 shadow-xl flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black text-white flex items-center gap-2">
-            <Trophy className="w-7 h-7 text-yellow-400" /> TOP KỴ SĨ XANH
-          </h2>
-          <span className="text-xs bg-slate-700 text-slate-300 px-3 py-1 rounded-full font-bold">Tháng Mày</span>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {topUsers.map((user, idx) => {
-            const isTop3 = idx < 3;
-            return (
-              <div 
-                key={user.rank} 
-                className={`flex items-center gap-4 p-4 rounded-2xl relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${
-                  idx === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-yellow-600/10 border border-yellow-500/50' :
-                  idx === 1 ? 'bg-gradient-to-r from-slate-300/20 to-slate-400/10 border border-slate-300/50' :
-                  idx === 2 ? 'bg-gradient-to-r from-amber-700/20 to-amber-800/10 border border-amber-700/50' :
-                  'bg-slate-800 border border-slate-700 hover:border-slate-600'
-                }`}
+        {/* Modal Đổi Thưởng */}
+        {isModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 28, width: '100%', maxWidth: 500, padding: 32, position: 'relative', animation: 'slideDown 0.2s ease' }}>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                style={{ position: 'absolute', right: 24, top: 24, background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
               >
-                {/* Hạng */}
-                <div className="w-8 flex justify-center font-black text-lg">
-                  {idx === 0 ? <Medal className="w-8 h-8 text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]" /> :
-                   idx === 1 ? <Medal className="w-7 h-7 text-slate-300" /> :
-                   idx === 2 ? <Medal className="w-7 h-7 text-amber-600" /> :
-                   <span className="text-slate-500">{user.rank}</span>}
+                <X size={24} />
+              </button>
+              
+              {redeemSuccess ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ width: 80, height: 80, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                    <CheckCircle2 size={48} color="#10b981" />
+                  </div>
+                  <h3 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 12px' }}>Đổi quà thành công!</h3>
+                  <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Mã Voucher đã được gửi về email của bạn.</p>
                 </div>
-
-                {/* Avatar */}
-                <div className="relative">
-                  <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full border-2 border-slate-700 object-cover" />
-                  {idx === 0 && <Flame className="w-5 h-5 text-orange-500 absolute -bottom-1 -right-1 fill-orange-500 animate-bounce" />}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1">
-                  <h4 className={`font-bold ${isTop3 ? 'text-white' : 'text-slate-300'}`}>{user.name}</h4>
-                  <p className="text-sm text-emerald-400 font-medium">{user.points.toLocaleString()} EcoP</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              ) : (
+                <>
+                  <h3 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 8px' }}>Đổi phần thưởng 🎁</h3>
+                  <p style={{ color: 'var(--text-secondary)', margin: '0 0 24px' }}>Chọn gói ưu đãi bạn muốn đổi bằng EcoP.</p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+                    {[
+                      { id: 1, title: 'Voucher Highland Coffee 50k', cost: 500, icon: '☕' },
+                      { id: 2, title: 'Thẻ GrabFood 100k', cost: 1000, icon: '🚗' },
+                      { id: 3, title: 'Gói nạp điện thoại 20k', cost: 200, icon: '📱' },
+                    ].map(item => (
+                      <div 
+                        key={item.id} 
+                        onClick={handleRedeem}
+                        style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, cursor: 'pointer' }}
+                      >
+                        <div style={{ fontSize: 24 }}>{item.icon}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, color: 'white' }}>{item.title}</div>
+                          <div style={{ fontSize: 14, color: 'var(--green-400)', marginTop: 4 }}>{item.cost} EcoP</div>
+                        </div>
+                        <ChevronRight size={20} color="var(--text-muted)" />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
+                    Số dư sau khi đổi: <b style={{ color: 'var(--green-400)' }}>{(currentPoints - 500).toLocaleString()} EcoP</b>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }`}</style>
       </div>
-
-      {/* Tích hợp Modal Feedback vào Trang */}
-      <FeedbackModal 
-        isOpen={isFeedbackOpen}
-        onClose={() => setIsFeedbackOpen(false)}
-        onSubmit={async (rating, comment) => {
-          try {
-            await axios.post('http://localhost:8085/api/v1/feedback', {
-              requestId: "11111111-2222-3333-4444-555555555555", // Mock ID cho Demo
-              rating: rating,
-              comment: comment
-            });
-            console.log("Đã gửi rating lên Server thành công:", rating, comment);
-          } catch (error) {
-            console.error("Lỗi khi gửi đánh giá:", error);
-            // Vẫn cho phép hoàn thành UI UX kể cả khi văng lỗi nếu đang build offline
-          }
-        }}
-        collectorName="Anh Lê Bảo Tín (59H1)"
-      />
     </div>
   );
 }
