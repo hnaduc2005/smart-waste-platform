@@ -45,3 +45,7 @@ management:
     web:
       exposure:
         include: health,info,metrics
+
+firebase:
+  service-account-path: classpath:firebase/service-account-key.json
+

@@ -303,17 +303,17 @@ services:
     networks:
       - ecocycle-network
 
-  waste-classifier:
-    build:
-      context: ../../backend/ai-services/waste-classifier
-      dockerfile: Dockerfile
-    image: ecocycle/waste-classifier:latest
-    container_name: ecocycle-waste-classifier
-    restart: always
-    ports:
-      - "8000:8000"
-    networks:
-      - ecocycle-network
+#   waste-classifier:
+#     build:
+#       context: ../../backend/ai-services/waste-classifier
+#       dockerfile: Dockerfile
+#     image: ecocycle/waste-classifier:latest
+#     container_name: ecocycle-waste-classifier
+#     restart: always
+#     ports:
+#       - "8000:8000"
+#     networks:
+#       - ecocycle-network
 
 
   # =========================================================
