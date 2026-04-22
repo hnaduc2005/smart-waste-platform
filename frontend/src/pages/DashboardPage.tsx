@@ -7,14 +7,23 @@ import { CollectorTasksView } from '../components/CollectorTasksView';
 import { rewardApi } from '../services/rewardApi';
 import { RewardView } from '../components/RewardView';
 import { CitizenReportView } from '../components/CitizenReportView';
-const NAV_ITEMS = [
+import { NotificationView } from '../components/NotificationView';
+interface NavItem {
+  icon: string;
+  label: string;
+  id: string;
+  active?: boolean;
+  badge?: number;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true },
   { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests' },
   { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks' },
   { icon: '🏆', label: 'Điểm thưởng', id: 'rewards' },
   { icon: '📊', label: 'Báo cáo', id: 'reports' },
   { icon: '🗺️', label: 'Bản đồ', id: 'map' },
-  { icon: '🔔', label: 'Thông báo', id: 'notifications', badge: 3 },
+  { icon: '🔔', label: 'Thông báo', id: 'notifications' },
   { icon: '⚙️', label: 'Cài đặt', id: 'settings' },
 ];
 
@@ -84,6 +93,24 @@ export default function DashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [totalPoints, setTotalPoints] = useState<number>(0);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  useEffect(() => {
+    const updateUnreadCount = () => {
+      const saved = localStorage.getItem('eco_notifications');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setUnreadNotificationCount(parsed.filter((n: any) => !n.isRead).length);
+        } catch(e) {}
+      } else {
+        setUnreadNotificationCount(3); // Default mock unread count
+      }
+    };
+    updateUnreadCount();
+    window.addEventListener('notifications_updated', updateUnreadCount);
+    return () => window.removeEventListener('notifications_updated', updateUnreadCount);
+  }, []);
 
   useEffect(() => {
     if (user?.userId) {
@@ -160,7 +187,12 @@ export default function DashboardPage() {
               }}>
               <span style={{ fontSize: 18, width: 20, textAlign: 'center' }}>{item.icon}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge && (
+              {item.id === 'notifications' && unreadNotificationCount > 0 && (
+                <span style={{ background: 'var(--green-500)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10 }}>
+                  {unreadNotificationCount}
+                </span>
+              )}
+              {item.badge && item.id !== 'notifications' && (
                 <span style={{ background: 'var(--green-500)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10 }}>
                   {item.badge}
                 </span>
@@ -202,6 +234,7 @@ export default function DashboardPage() {
         {activeNav === 'tasks' && <CollectorTasksView />}
         {activeNav === 'rewards' && <RewardView />}
         {activeNav === 'reports' && <CitizenReportView />}
+        {activeNav === 'notifications' && <NotificationView />}
 
         {activeNav === 'overview' && (
           <>
@@ -242,7 +275,7 @@ export default function DashboardPage() {
             { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests') },
             { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier') },
             { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map') },
-            { icon: '🏅', label: 'Đổi điểm thưởng', action: () => navigate('/gamification') },
+            { icon: '🏅', label: 'Đổi điểm thưởng', action: () => setActiveNav('rewards') },
           ].map(a => (
             <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}

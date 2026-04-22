@@ -42,11 +42,15 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit, collectorName
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md transition-opacity duration-300">
-      <div 
-        className="bg-slate-800 border border-slate-700/60 w-full max-w-md rounded-3xl p-8 shadow-[0_0_50px_rgba(16,185,129,0.15)] relative transform transition-all duration-500 scale-100 opacity-100 translate-y-0"
-        style={{ animation: 'modalEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
-      >
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)'
+    }}>
+      <div style={{
+        background: '#1e293b', border: '1px solid rgba(255,255,255,0.08)', width: '90%', maxWidth: 450, 
+        borderRadius: 28, padding: 36, boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(16,185,129,0.15)', 
+        position: 'relative', animation: 'modalEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+      }}>
         <style>{`
           @keyframes modalEntrance {
             from { opacity: 0; transform: scale(0.95) translateY(20px); }
@@ -62,59 +66,83 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit, collectorName
         {!isSubmitting && !isSuccess && (
           <button 
             onClick={onClose} 
-            className="absolute top-5 right-5 text-slate-500 hover:text-white bg-slate-800/80 hover:bg-slate-700/50 rounded-full p-1.5 transition-all"
+            style={{
+              position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.05)', border: 'none',
+              borderRadius: '50%', padding: 6, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'white'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
           >
-            <X className="w-5 h-5" />
+            <X size={20} />
           </button>
         )}
 
         {isSuccess ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                <path className="check-animated" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" style={{ strokeDasharray: 50, animation: 'checkmark 0.6s ease-out forwards' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%', background: 'rgba(16,185,129,0.2)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16
+            }}>
+              <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3" style={{ color: '#34d399' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" style={{ strokeDasharray: 50, animation: 'checkmark 0.6s ease-out forwards' }} />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Tuyệt vời!</h3>
-            <p className="text-emerald-400 font-medium pb-2">Đánh giá của bạn đã được ghi nhận.</p>
+            <h3 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 8px' }}>Tuyệt vời!</h3>
+            <p style={{ color: '#34d399', fontWeight: 500, margin: 0 }}>Đánh giá của bạn đã được ghi nhận.</p>
           </div>
         ) : (
           <>
-            <h3 className="text-2xl font-bold text-center text-white mb-2">Đánh giá dịch vụ</h3>
-            <p className="text-slate-400 text-center text-[15px] mb-8 leading-relaxed">
-              Bạn cảm thấy thái độ và tốc độ của <strong className="text-emerald-400">{collectorName}</strong> thế nào?
+            <h3 style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', color: 'white', margin: '0 0 8px' }}>Đánh giá dịch vụ</h3>
+            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', fontSize: 15, lineHeight: 1.5, margin: '0 0 32px' }}>
+              Bạn cảm thấy thái độ và tốc độ của <strong style={{ color: '#34d399', fontWeight: 600 }}>{collectorName}</strong> thế nào?
             </p>
 
             {/* Khối Đánh Giá Sao */}
-            <div className="flex justify-center gap-3 mb-8 relative">
-              <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full"></div>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setRating(star)}
-                  className="transition-transform hover:scale-125 focus:outline-none relative z-10"
-                >
-                  <Star 
-                    className={`w-11 h-11 transition-all duration-300 ${
-                      star <= (hoverRating || rating) 
-                        ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.8)] scale-110' 
-                        : 'text-slate-600 hover:text-slate-500'
-                    }`}
-                  />
-                </button>
-              ))}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 32, position: 'relative' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(250,204,21,0.15)', filter: 'blur(30px)', borderRadius: '50%', zIndex: 0 }}></div>
+              {[1, 2, 3, 4, 5].map((star) => {
+                const isActive = star <= (hoverRating || rating);
+                return (
+                  <button
+                    key={star}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => setRating(star)}
+                    style={{
+                      background: 'none', border: 'none', padding: 0, cursor: 'pointer', outline: 'none',
+                      position: 'relative', zIndex: 10, transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                      transform: isActive ? 'scale(1.15)' : 'scale(1)'
+                    }}
+                  >
+                    <Star 
+                      size={44}
+                      style={{
+                        transition: 'all 0.3s ease',
+                        fill: isActive ? '#facc15' : 'transparent',
+                        color: isActive ? '#facc15' : 'rgba(255,255,255,0.2)',
+                        filter: isActive ? 'drop-shadow(0 0 12px rgba(250,204,21,0.6))' : 'none'
+                      }}
+                    />
+                  </button>
+                );
+              })}
             </div>
 
             {/* Khối Nhập Comment */}
-            <div className="mb-8">
+            <div style={{ marginBottom: 32 }}>
               <textarea
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all resize-none shadow-inner"
+                style={{
+                  width: '100%', background: 'rgba(15, 23, 42, 0.5)', border: '1px solid rgba(255,255,255,0.1)', 
+                  borderRadius: 16, padding: 16, color: 'white', outline: 'none', resize: 'none', 
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)', transition: 'border-color 0.2s', fontFamily: 'inherit', fontSize: 15
+                }}
                 rows={3}
-                placeholder="Để lại lời nhắn tĩnh viên cho tài xế nhé..."
+                placeholder="Để lại lời nhắn động viên cho nhân viên nhé..."
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
+                onFocus={e => e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
               ></textarea>
             </div>
 
@@ -122,23 +150,18 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit, collectorName
             <button 
               onClick={handleSubmit}
               disabled={rating === 0 || isSubmitting}
-              className={`w-full py-4 rounded-2xl font-bold text-[17px] transition-all duration-300 flex justify-center items-center gap-2 ${
-                rating === 0 
-                  ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed' 
-                  : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-1 active:translate-y-0'
-              }`}
+              style={{
+                width: '100%', padding: '16px', borderRadius: 16, fontWeight: 700, fontSize: 16, border: 'none',
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, transition: 'all 0.2s',
+                background: rating === 0 ? 'rgba(255,255,255,0.05)' : '#10b981',
+                color: rating === 0 ? 'rgba(255,255,255,0.3)' : '#022c22',
+                cursor: rating === 0 ? 'not-allowed' : 'pointer',
+                boxShadow: rating === 0 ? 'none' : '0 4px 14px rgba(16,185,129,0.3)'
+              }}
+              onMouseEnter={e => { if(rating > 0) e.currentTarget.style.transform = 'translateY(-2px)' }}
+              onMouseLeave={e => { if(rating > 0) e.currentTarget.style.transform = 'translateY(0)' }}
             >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-slate-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Đang Xử Lý...
-                </>
-              ) : (
-                'Gửi Đánh Giá'
-              )}
+              {isSubmitting ? 'Đang Gửi...' : 'Gửi Đánh Giá'}
             </button>
           </>
         )}
