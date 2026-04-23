@@ -3,102 +3,168 @@ package com.ecocycle.analytics.service;
 import com.ecocycle.analytics.repository.WasteAnalyticsRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class AnalyticsService {
-    
+
     private final WasteAnalyticsRepository repository;
+
+    /** Ánh xạ day-of-week (PostgreSQL: 0=CN, 1=T2 ... 6=T7)*/
+    private static final Map<Integer, String> DAY_LABEL_VI = Map.of(
+            0, "CN",
+            1, "T2",
+            2, "T3",
+            3, "T4",
+            4, "T5",
+            5, "T6",
+            6, "T7"
+    );
+
+    /** Thứ tự hiển thị: Thứ Hai -> Chủ Nhật */
+    private static final int[] DAY_ORDER = {1, 2, 3, 4, 5, 6, 0};
 
     public AnalyticsService(WasteAnalyticsRepository repository) {
         this.repository = repository;
     }
-    
+
+    // ── DASHBOARD ───────────────────────────────────────────────────────
+
     public Map<String, Object> getDashboardData() {
         Map<String, Object> response = new HashMap<>();
 
-        List<Object[]> districtData = repository.findTotalWeightByDistrict();
-        List<Map<String, Object>> districtList = new ArrayList<>();
-        
-        for (Object[] row : districtData) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("name", row[0]);
-            Number totalWeight = (Number) row[1];
-            map.put("total", totalWeight != null ? totalWeight.doubleValue() : 0.0);
-            map.put("efficiency", calculateEfficiency()); 
-            districtList.add(map);
+        // 1. Tổng khối lượng theo quận
+        List<Object[]> districtTotals = repository.findTotalWeightByDistrict();
+
+        // 2. Hiệu suất thu gom theo quận
+        List<Object[]> efficiencyRows = repository.findEfficiencyByDistrict();
+        Map<String, Integer> efficiencyMap = new HashMap<>();
+        for (Object[] row : efficiencyRows) {
+            String district = (String) row[0];
+            Number eff = (Number) row[1];
+            efficiencyMap.put(district, eff != null ? eff.intValue() : 0);
         }
-        
-        response.put("districts", districtList.isEmpty() ? getFallbackDistrictData() : districtList);
-        response.put("weekly", getFallbackWeeklyData());
-        
+
+        // 3. Kết hợp hai tập dữ liệu
+        List<Map<String, Object>> districtList = new ArrayList<>();
+        for (Object[] row : districtTotals) {
+            String name = (String) row[0];
+            Number total = (Number) row[1];
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("name", name);
+            entry.put("total", total != null ? total.doubleValue() : 0.0);
+            entry.put("efficiency", efficiencyMap.getOrDefault(name, 0));
+            districtList.add(entry);
+        }
+        // Sắp xếp giảm dần theo tổng khối lượng
+        districtList.sort((a, b) -> Double.compare(
+                (double) b.get("total"), (double) a.get("total")));
+
+        response.put("districts", districtList.isEmpty()
+                ? getEmptyDistrictData()
+                : districtList);
+
+        // 4. Dữ liệu tuần (7 ngày gần nhất, nhóm theo ngày-trong-tuần × loại rác)
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        List<Object[]> weeklyRaw = repository.findWeeklyStatsByType(sevenDaysAgo);
+
+        // Khởi tạo map theo thứ tự ngày trong tuần
+        Map<Integer, Map<String, Object>> weeklyMap = new LinkedHashMap<>();
+        for (int dow : DAY_ORDER) {
+            Map<String, Object> day = new LinkedHashMap<>();
+            day.put("name", DAY_LABEL_VI.get(dow));
+            day.put("organic",   0.0);
+            day.put("recycle",   0.0);
+            day.put("hazardous", 0.0);
+            weeklyMap.put(dow, day);
+        }
+
+        for (Object[] row : weeklyRaw) {
+            int dow = ((Number) row[0]).intValue();
+            String wasteType = (String) row[1];
+            double weight = row[2] != null ? ((Number) row[2]).doubleValue() : 0.0;
+            Map<String, Object> dayEntry = weeklyMap.get(dow);
+            if (dayEntry == null) continue;
+            if ("ORGANIC".equalsIgnoreCase(wasteType))         dayEntry.put("organic",   weight);
+            else if ("RECYCLABLE".equalsIgnoreCase(wasteType)) dayEntry.put("recycle",   weight);
+            else if ("HAZARDOUS".equalsIgnoreCase(wasteType))  dayEntry.put("hazardous", weight);
+        }
+
+        List<Map<String, Object>> weeklyList = new ArrayList<>(weeklyMap.values());
+        response.put("weekly", weeklyList);
+
         return response;
     }
+
 
     public Map<String, Object> getUserAnalytics(String userId) {
         Map<String, Object> response = new HashMap<>();
 
-        // 1. Personal Waste Distribution (Pie Chart)
-        List<Map<String, Object>> personalDistribution = repository.findIndividualWasteDistribution(userId);
-        response.put("personalDistribution", personalDistribution.isEmpty() ? getFallbackPersonalDistribution() : personalDistribution);
+        // 1. Phân bổ loại rác cá nhân
+        List<Map<String, Object>> distribution = repository.findIndividualWasteDistribution(userId);
+        response.put("personalDistribution", distribution.isEmpty()
+                ? getEmptyPersonalDistribution()
+                : distribution);
 
-        // 2. Metrics (Total weight, etc)
+        // 2. Chỉ số tổng hợp
         Double totalWeight = repository.findTotalWeightByUser(userId);
-        response.put("totalWeight", totalWeight != null ? totalWeight : 0.0);
-        response.put("co2Saved", (totalWeight != null ? totalWeight * 0.36 : 0.0)); 
+        double weight = totalWeight != null ? totalWeight : 0.0;
+        response.put("totalWeight", weight);
+        // Mỗi kg tái chế tiết kiệm ~0.36 kg CO2 
+        response.put("co2Saved", Math.round(weight * 0.36 * 100.0) / 100.0);
 
-        // 3. Neighborhood Comparison (Bar Chart)
-        List<Object[]> districtAverages = repository.findTotalWeightByDistrict();
+        // 3. So sánh với trung bình khu vực
+        List<Object[]> districtData = repository.findTotalWeightByDistrict();
         List<Map<String, Object>> comparison = new ArrayList<>();
         
-        // Add User data first
-        comparison.add(Map.of("name", "Bạn", "user", totalWeight != null ? totalWeight : 0.0, "average", 0.0));
-        
-        for (Object[] row : districtAverages) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("name", row[0]);
+        comparison.add(Map.of("name", "Bạn", "user", weight, "average", 0.0));
+        for (Object[] row : districtData) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("name", row[0]);
             Number districtTotal = (Number) row[1];
-            // Normalize district total to an "average" per household (simulated factor of 500)
-            map.put("average", districtTotal != null ? districtTotal.doubleValue() / 500 : 0.0);
-            comparison.add(map);
+            // Ước lượng trung bình hộ (chia cho 500 hộ/quận)
+            entry.put("average", districtTotal != null ? districtTotal.doubleValue() / 500.0 : 0.0);
+            entry.put("user", 0.0);
+            comparison.add(entry);
         }
-        
         response.put("comparisonData", comparison);
 
         return response;
     }
 
-    private List<Map<String, Object>> getFallbackPersonalDistribution() {
-        return List.of(
-            Map.of("name", "Tái chế", "value", 0.0),
-            Map.of("name", "Hữu cơ", "value", 0.0),
-            Map.of("name", "Độc hại", "value", 0.0)
-        );
-    }
+    // ── LEADERBOARD ────────────────────────────────────────────────────────
+
     
-    private int calculateEfficiency() {
-        return (int) (Math.random() * 30 + 60); 
+    public List<Map<String, Object>> getLeaderboard(String district) {
+        String districtFilter = (district == null || district.isBlank()) ? null : district;
+        List<Object[]> rawRows = repository.findLeaderboard(districtFilter);
+
+        List<Map<String, Object>> leaderboard = new ArrayList<>();
+        int rank = 1;
+        for (Object[] row : rawRows) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("rank",        rank++);
+            entry.put("userId",      row[0] != null ? row[0].toString() : "unknown");
+            Number totalWeight = (Number) row[1];
+            entry.put("totalWeight", totalWeight != null ? totalWeight.doubleValue() : 0.0);
+            leaderboard.add(entry);
+        }
+        return leaderboard;
     }
 
-    private List<Map<String, Object>> getFallbackDistrictData() {
-        return List.of(
-                Map.of("name", "Q1", "total", 4000, "efficiency", 86),
-                Map.of("name", "Q3", "total", 3000, "efficiency", 72),
-                Map.of("name", "Q10", "total", 5000, "efficiency", 90),
-                Map.of("name", "Tân Bình", "total", 2780, "efficiency", 65)
-        );
+    // ── Empty-state helpers ────────────────────────────────────────────────
+
+
+    private List<Map<String, Object>> getEmptyDistrictData() {
+        return Collections.emptyList();
     }
-    
-    private List<Map<String, Object>> getFallbackWeeklyData() {
+
+    private List<Map<String, Object>> getEmptyPersonalDistribution() {
         return List.of(
-                Map.of("name", "T2", "organic", 4000, "recycle", 2400),
-                Map.of("name", "T3", "organic", 3000, "recycle", 1398),
-                Map.of("name", "T4", "organic", 2000, "recycle", 9800),
-                Map.of("name", "T5", "organic", 2780, "recycle", 3908),
-                Map.of("name", "T6", "organic", 1890, "recycle", 4800)
+                Map.of("name", "Tái chế", "value", 0.0),
+                Map.of("name", "Hữu cơ",  "value", 0.0),
+                Map.of("name", "Độc hại",  "value", 0.0)
         );
     }
 }
