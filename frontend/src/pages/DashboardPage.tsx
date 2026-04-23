@@ -8,6 +8,9 @@ import { rewardApi } from '../services/rewardApi';
 import { RewardView } from '../components/RewardView';
 import { CitizenReportView } from '../components/CitizenReportView';
 import { NotificationView } from '../components/NotificationView';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
 interface NavItem {
   icon: string;
   label: string;
@@ -46,9 +49,7 @@ const BADGE_STYLES = {
   info:    { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
 };
 
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
-} from 'recharts';
+
 
 const chartData = [
   { name: 'T2', points: 40, weight: 1.2 },
