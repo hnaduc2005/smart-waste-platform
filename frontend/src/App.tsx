@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { ReactNode } from 'react';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -9,15 +10,15 @@ import FirebasePushNotification from './components/common/FirebasePushNotificati
 import GamificationPage from './pages/GamificationPage';
 
 /** Route guard: redirect to /login if not authenticated */
-function PrivateRoute({ children }) {
+function PrivateRoute({ children }: { children: ReactNode }) {
   const { isLoggedIn } = useAuth();
-  return isLoggedIn ? children : <Navigate to="/login" replace />;
+  return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 /** Route guard: redirect to /dashboard if already logged in */
-function PublicOnlyRoute({ children }) {
+function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { isLoggedIn } = useAuth();
-  return isLoggedIn ? <Navigate to="/dashboard" replace /> : children;
+  return isLoggedIn ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 }
 
 export default function App() {
