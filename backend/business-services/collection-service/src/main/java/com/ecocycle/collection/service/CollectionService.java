@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ecocycle.collection.domain.enums.WasteType;
 import com.ecocycle.collection.dto.ai.AiPredictionResponse;
-import com.ecocycle.collection.dto.ai.PredictionItem;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -57,7 +56,7 @@ public class CollectionService {
         request.setLocation(dto.getLocation());
         request.setImageUrl(dto.getImageUrl());
         request.setStatus(RequestStatus.PENDING);
-        
+
         return requestRepository.save(request);
     }
 
@@ -87,8 +86,7 @@ public class CollectionService {
             ResponseEntity<AiPredictionResponse> response = restTemplate.postForEntity(
                     aiServiceUrl + "/predict",
                     requestEntity,
-                    AiPredictionResponse.class
-            );
+                    AiPredictionResponse.class);
 
             AiPredictionResponse aiResponse = response.getBody();
             if (aiResponse != null && aiResponse.getPredictions() != null) {
@@ -96,10 +94,13 @@ public class CollectionService {
                 boolean hasOrganic = aiResponse.getPredictions().stream()
                         .anyMatch(p -> p.getClassName().toLowerCase().contains("organic"));
                 boolean hasHazardous = aiResponse.getPredictions().stream()
-                        .anyMatch(p -> p.getClassName().toLowerCase().contains("battery") || p.getClassName().toLowerCase().contains("hazardous"));
+                        .anyMatch(p -> p.getClassName().toLowerCase().contains("battery")
+                                || p.getClassName().toLowerCase().contains("hazardous"));
 
-                if (hasOrganic) finalWasteType = WasteType.ORGANIC;
-                else if (hasHazardous) finalWasteType = WasteType.HAZARDOUS;
+                if (hasOrganic)
+                    finalWasteType = WasteType.ORGANIC;
+                else if (hasHazardous)
+                    finalWasteType = WasteType.HAZARDOUS;
             }
 
         } catch (Exception e) {
@@ -110,13 +111,13 @@ public class CollectionService {
         request.setCitizenId(citizenId);
         request.setType(finalWasteType);
         request.setLocation(location);
-        // For production, image should be uploaded to S3. Here we put a placeholder or basic string.
-        request.setImageUrl("https://via.placeholder.com/300?text=Auto+AI+Processed"); 
+        // For production, image should be uploaded to S3. Here we put a placeholder or
+        // basic string.
+        request.setImageUrl("https://via.placeholder.com/300?text=Auto+AI+Processed");
         request.setStatus(RequestStatus.PENDING);
 
         return requestRepository.save(request);
     }
-
 
     public List<WasteRequest> getPendingRequests() {
         return requestRepository.findByStatus(RequestStatus.PENDING);
@@ -130,7 +131,7 @@ public class CollectionService {
     public TaskAssignment assignTask(AssignTaskDto dto) {
         WasteRequest request = requestRepository.findById(dto.getRequestId())
                 .orElseThrow(() -> new RuntimeException("WasteRequest not found"));
-        
+
         if (request.getStatus() != RequestStatus.PENDING) {
             throw new RuntimeException("Request is not in PENDING status");
         }
@@ -154,7 +155,7 @@ public class CollectionService {
     public CollectionProof confirmCollection(UUID taskId, ConfirmCollectionDto dto) {
         TaskAssignment task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("TaskAssignment not found"));
-        
+
         if (task.getStatus() == RequestStatus.COMPLETED) {
             throw new RuntimeException("Task already completed");
         }
@@ -182,7 +183,7 @@ public class CollectionService {
                 .weightInKg(dto.getWeight())
                 .completedAt(java.time.Instant.now())
                 .build();
-                
+
         kafkaTemplate.send("waste.collection.completed", event);
         log.info("Emitted CollectionCompletedEvent for request {}", request.getId());
 
