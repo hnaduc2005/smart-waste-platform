@@ -22,56 +22,90 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/api/v1/users/**
+          filters:
+            - AuthenticationFilter
 
         # === COLLECTION SERVICE ===
         - id: collection-service-route
           uri: lb://collection-service
           predicates:
             - Path=/api/v1/requests/**
+          filters:
+            - name: AuthenticationFilter
+              args:
+                allowedRoles:
+                  - CITIZEN
+                  - ENTERPRISE
 
         - id: collection-tasks-route
           uri: lb://collection-service
           predicates:
             - Path=/api/v1/tasks/**
+          filters:
+            - name: AuthenticationFilter
+              args:
+                allowedRoles:
+                  - COLLECTOR
+                  - ENTERPRISE
 
         # === REWARD SERVICE ===
         - id: reward-service-route
           uri: lb://reward-service
           predicates:
             - Path=/api/v1/rewards/**
+          filters:
+            - AuthenticationFilter
 
         # === NOTIFICATION SERVICE ===
         - id: notification-service-route
           uri: lb://notification-service
           predicates:
             - Path=/api/v1/notifications/**
+          filters:
+            - AuthenticationFilter
 
         - id: feedback-route
           uri: lb://notification-service
           predicates:
             - Path=/api/v1/feedbacks/**
+          filters:
+            - AuthenticationFilter
 
         - id: device-token-route
           uri: lb://notification-service
           predicates:
             - Path=/api/v1/device-tokens/**
+          filters:
+            - AuthenticationFilter
 
         # === ENTERPRISE SERVICE (Khối 5) ===
         - id: enterprise-service-route
           uri: lb://enterprise-service
           predicates:
             - Path=/api/v1/enterprises/**
+          filters:
+            - name: AuthenticationFilter
+              args:
+                allowedRoles:
+                  - ENTERPRISE
 
         - id: vehicle-service-route
           uri: lb://enterprise-service
           predicates:
             - Path=/api/v1/vehicles/**
+          filters:
+            - name: AuthenticationFilter
+              args:
+                allowedRoles:
+                  - ENTERPRISE
 
         # === ANALYTICS SERVICE (Khối 5) ===
         - id: analytics-service-route
           uri: lb://analytics-service
           predicates:
             - Path=/api/v1/analytics/**
+          filters:
+            - AuthenticationFilter
 
       # GlobalFilter: Thêm CORS header cho Gateway
       globalcors:
