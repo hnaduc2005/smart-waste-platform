@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean;
+  variant?: 'primary' | 'secondary' | 'danger';
+  fullWidth?: boolean;
+}
 
 /** Animated submit button with loading spinner */
 export default function Button({
   children, type = 'button', onClick, loading = false,
-  variant = 'primary', fullWidth = true, disabled = false, style = {},
-}) {
+  variant = 'primary', fullWidth = true, disabled = false, style = {}, ...props
+}: ButtonProps) {
   const [hovered, setHovered] = useState(false);
 
   const base = {
@@ -15,7 +21,7 @@ export default function Button({
     fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
     cursor: loading || disabled ? 'not-allowed' : 'pointer',
     transition: 'all 250ms',
-    position: 'relative', overflow: 'hidden',
+    position: 'relative' as const, overflow: 'hidden',
     opacity: disabled && !loading ? 0.5 : 1,
     transform: hovered && !loading && !disabled ? 'translateY(-1px)' : 'translateY(0)',
   };
@@ -48,6 +54,7 @@ export default function Button({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ ...base, ...variants[variant], ...style }}
+      {...props}
     >
       {loading ? (
         <span style={{

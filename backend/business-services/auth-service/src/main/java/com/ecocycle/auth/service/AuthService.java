@@ -163,6 +163,44 @@ public class AuthService {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // 5. QUÊN MẬT KHẨU
+    // ─────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void forgotPassword(String email) {
+        if (!userAuthRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email không tồn tại");
+        }
+
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        log.info("MOCK EMAIL SENT: [OTP={}] cho user {}", otp, email);
+        
+        redisTemplate.opsForValue().set(
+                "OTP:" + email,
+                otp,
+                5,
+                TimeUnit.MINUTES
+        );
+    }
+
+    @Transactional
+    public void resetPassword(String email, String otp, String newPassword) {
+        String storedOtp = redisTemplate.opsForValue().get("OTP:" + email);
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            throw new IllegalArgumentException("OTP không hợp lệ hoặc đã hết hạn");
+        }
+
+        UserAuth user = userAuthRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại"));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userAuthRepository.save(user);
+
+        redisTemplate.delete("OTP:" + email);
+        log.info("User {} đã đặt lại mật khẩu thành công", email);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // PRIVATE HELPERS
     // ─────────────────────────────────────────────────────────────
 

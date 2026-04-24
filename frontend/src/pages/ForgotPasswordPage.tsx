@@ -6,10 +6,11 @@ import GlassCard from '../components/GlassCard';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
 import Alert from '../components/Alert';
+import { authApi, extractError } from '../services/authApi';
 
 const STEPS = ['email', 'otp', 'newpwd', 'success'];
 
-function calcStrength(pwd) {
+function calcStrength(pwd: string) {
   let s = 0;
   if (pwd.length >= 6) s++;
   if (pwd.length >= 10) s++;
@@ -25,12 +26,12 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [otp, setOtp]   = useState(Array(6).fill(''));
   const [pwd, setPwd]   = useState({ new: '', confirm: '' });
-  const [errors, setErrors] = useState({});
-  const [alert, setAlert]   = useState({ msg: '', type: 'error' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [alert, setAlert]   = useState<{ msg: string; type: 'error' | 'success' | 'warning' | 'info' }>({ msg: '', type: 'error' });
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const otpRefs = useRef([]);
-  const timerRef = useRef(null);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const timerRef = useRef<any>(null);
 
   // ── Countdown ─────────────────────────────────────────────────
   const startCountdown = () => {
@@ -48,24 +49,29 @@ export default function ForgotPasswordPage() {
       setErrors({ email: 'Email không hợp lệ' }); return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200)); // simulate
-    setStep(1);
-    startCountdown();
-    setLoading(false);
+    try {
+      await authApi.forgotPassword(email);
+      setStep(1);
+      startCountdown();
+    } catch (err: any) {
+      setAlert({ msg: extractError(err).message, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ── OTP input handlers ────────────────────────────────────────
-  const handleOtpChange = (i, val) => {
+  const handleOtpChange = (i: number, val: string) => {
     const clean = val.replace(/\D/, '');
     const next  = [...otp];
     next[i]     = clean;
     setOtp(next);
     if (clean && i < 5) otpRefs.current[i + 1]?.focus();
   };
-  const handleOtpKeyDown = (i, e) => {
+  const handleOtpKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
   };
-  const handleOtpPaste = (e) => {
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
     const next   = [...otp];
@@ -80,23 +86,32 @@ export default function ForgotPasswordPage() {
     const code = otp.join('');
     if (code.length < 6) { setAlert({ msg: 'Vui lòng nhập đủ 6 chữ số', type: 'error' }); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    if (code === '000000') { setAlert({ msg: 'Mã OTP không đúng. Thử lại.', type: 'error' }); setLoading(false); return; }
-    setStep(2);
+    try {
+      // Just testing OTP locally if needed, but we do verification in reset
+      setStep(2);
+    } finally {
+      setLoading(false);
+    }
+
     setLoading(false);
   };
 
   // ── Step 3: Reset Password ────────────────────────────────────
   const handleReset = async () => {
-    const errs = {};
+    const errs: Record<string, string> = {};
     if (pwd.new.length < 6) errs.new = 'Mật khẩu phải có ít nhất 6 ký tự';
     if (pwd.new !== pwd.confirm) errs.confirm = 'Mật khẩu không khớp';
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setStep(3);
-    setLoading(false);
+    try {
+      await authApi.resetPassword({ email, otp: otp.join(''), newPassword: pwd.new });
+      setStep(3);
+    } catch (err: any) {
+      setAlert({ msg: extractError(err).message, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const strength = calcStrength(pwd.new);
@@ -108,6 +123,7 @@ export default function ForgotPasswordPage() {
         title="Bảo mật tài khoản"
         highlight="của bạn"
         subtitle="Mật khẩu mạnh bảo vệ tài khoản và điểm thưởng tích lũy. Chúng tôi sẽ giúp bạn khôi phục an toàn."
+        stats={[]}
         features={[
           { icon: '🔐', label: 'Xác minh danh tính qua email' },
           { icon: '⏱️', label: 'Mã OTP hết hạn sau 10 phút' },
@@ -149,7 +165,7 @@ export default function ForgotPasswordPage() {
                 {otp.map((val, i) => (
                   <input
                     key={i}
-                    ref={el => otpRefs.current[i] = el}
+                    ref={el => { otpRefs.current[i] = el; }}
                     type="text" maxLength={1} inputMode="numeric"
                     value={val}
                     onChange={e => handleOtpChange(i, e.target.value)}

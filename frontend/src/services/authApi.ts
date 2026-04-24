@@ -29,7 +29,7 @@ api.interceptors.response.use(
 );
 
 // ── Helper: extract error message ────────────────────────────────
-export const extractError = (err) => {
+export const extractError = (err: any) => {
   const data = err?.response?.data;
   return {
     message:  data?.message || err.message || 'Lỗi không xác định',
@@ -40,13 +40,13 @@ export const extractError = (err) => {
 
 // ── Auth API ─────────────────────────────────────────────────────
 export const authApi = {
-  register: ({ username, email, password, role }) =>
+  register: ({ username, email, password, role }: any) =>
     api.post('/auth/register', { username, email, password, role }).then(r => r.data),
 
-  login: ({ username, password }) =>
+  login: ({ username, password }: any) =>
     api.post('/auth/login', { username, password }).then(r => r.data),
 
-  refreshToken: (refreshToken) =>
+  refreshToken: (refreshToken: string) =>
     api.post('/auth/refresh-token', { refreshToken }).then(r => r.data),
 
   logout: () =>
@@ -54,6 +54,12 @@ export const authApi = {
 
   getMe: () =>
     api.get('/auth/me').then(r => r.data),
+
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }).then(r => r.data),
+
+  resetPassword: ({ email, otp, newPassword }: any) =>
+    api.post('/auth/reset-password', { email, otp, newPassword }).then(r => r.data),
 };
 
 export default api;

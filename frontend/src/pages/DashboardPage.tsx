@@ -8,6 +8,7 @@ import { rewardApi } from '../services/rewardApi';
 import { RewardView } from '../components/RewardView';
 import { CitizenReportView } from '../components/CitizenReportView';
 import { NotificationView } from '../components/NotificationView';
+import { UserProfileView } from '../components/UserProfileView';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -236,6 +237,7 @@ export default function DashboardPage() {
         {activeNav === 'rewards' && <RewardView />}
         {activeNav === 'reports' && <CitizenReportView />}
         {activeNav === 'notifications' && <NotificationView />}
+        {activeNav === 'settings' && <UserProfileView />}
 
         {activeNav === 'overview' && (
           <>

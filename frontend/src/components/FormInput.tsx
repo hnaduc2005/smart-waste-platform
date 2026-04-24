@@ -1,6 +1,12 @@
-import { useState, forwardRef } from 'react';
+import React, { useState, forwardRef } from 'react';
 
-const inputBase = {
+export interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  icon?: string | React.ReactNode;
+  error?: string;
+}
+
+const inputBase: React.CSSProperties = {
   width: '100%',
   background: 'var(--bg-input)',
   border: '1px solid var(--border)',
@@ -14,7 +20,7 @@ const inputBase = {
 };
 
 /** Controlled form input with icon, error state & optional password toggle */
-const FormInput = forwardRef(function FormInput(
+const FormInput = forwardRef<HTMLInputElement, FormInputProps>(function FormInput(
   { label, name, type = 'text', icon, placeholder, error, value, onChange, autoComplete, style = {} },
   ref
 ) {

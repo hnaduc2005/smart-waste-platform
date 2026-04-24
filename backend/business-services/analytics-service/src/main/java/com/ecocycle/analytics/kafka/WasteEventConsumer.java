@@ -1,6 +1,5 @@
 package com.ecocycle.analytics.kafka;
 
-import com.ecocycle.analytics.dto.WasteCollectedEventDto;
 import com.ecocycle.analytics.dto.WasteReportEventDto;
 import com.ecocycle.analytics.entity.WasteAnalyticsRecord;
 import com.ecocycle.analytics.repository.WasteAnalyticsRepository;
