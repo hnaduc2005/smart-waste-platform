@@ -17,6 +17,20 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ecocycle.collection.domain.enums.WasteType;
+import com.ecocycle.collection.dto.ai.AiPredictionResponse;
+import com.ecocycle.collection.dto.ai.PredictionItem;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +43,10 @@ public class CollectionService {
     private final TaskAssignmentRepository taskRepository;
     private final CollectionProofRepository proofRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final RestTemplate restTemplate;
+
+    @Value("${app.ai-service.url}")
+    private String aiServiceUrl;
 
     @Transactional
     public WasteRequest createWasteRequest(CreateWasteRequestDto dto) {
@@ -42,6 +60,63 @@ public class CollectionService {
         
         return requestRepository.save(request);
     }
+
+    @Transactional
+    public WasteRequest detectAndCreateWasteRequest(UUID citizenId, String location, MultipartFile image) {
+        log.info("Receiving image for AI detection and creating waste request for citizen: {}", citizenId);
+
+        WasteType finalWasteType = WasteType.RECYCLABLE; // Default
+
+        try {
+            // Forward image to AI-Service
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            ByteArrayResource fileResource = new ByteArrayResource(image.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return image.getOriginalFilename() != null ? image.getOriginalFilename() : "upload.jpg";
+                }
+            };
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", fileResource);
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<AiPredictionResponse> response = restTemplate.postForEntity(
+                    aiServiceUrl + "/predict",
+                    requestEntity,
+                    AiPredictionResponse.class
+            );
+
+            AiPredictionResponse aiResponse = response.getBody();
+            if (aiResponse != null && aiResponse.getPredictions() != null) {
+                // Determine the primary waste type from predictions
+                boolean hasOrganic = aiResponse.getPredictions().stream()
+                        .anyMatch(p -> p.getClassName().toLowerCase().contains("organic"));
+                boolean hasHazardous = aiResponse.getPredictions().stream()
+                        .anyMatch(p -> p.getClassName().toLowerCase().contains("battery") || p.getClassName().toLowerCase().contains("hazardous"));
+
+                if (hasOrganic) finalWasteType = WasteType.ORGANIC;
+                else if (hasHazardous) finalWasteType = WasteType.HAZARDOUS;
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to connect or process AI service prediction. Falling back to RECYCLABLE", e);
+        }
+
+        WasteRequest request = new WasteRequest();
+        request.setCitizenId(citizenId);
+        request.setType(finalWasteType);
+        request.setLocation(location);
+        // For production, image should be uploaded to S3. Here we put a placeholder or basic string.
+        request.setImageUrl("https://via.placeholder.com/300?text=Auto+AI+Processed"); 
+        request.setStatus(RequestStatus.PENDING);
+
+        return requestRepository.save(request);
+    }
+
 
     public List<WasteRequest> getPendingRequests() {
         return requestRepository.findByStatus(RequestStatus.PENDING);

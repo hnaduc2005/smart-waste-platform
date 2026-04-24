@@ -4,6 +4,11 @@ spring:
   config:
     import: optional:configserver:http://localhost:8888
 
+app:
+  ai-service:
+    url: http://localhost:8000
+
+
   datasource:
     url: jdbc:postgresql://localhost:5432/collection_db
     username: ecocycle

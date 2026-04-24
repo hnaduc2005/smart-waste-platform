@@ -16,6 +16,16 @@ api.interceptors.request.use(config => {
 export const collectionApi = {
   createRequest: (data: { citizenId: string; type: string; location: string; imageUrl?: string }) => 
     api.post('/request', data).then(res => res.data),
+
+  createRequestWithImage: (citizenId: string, location: string, image: File) => {
+    const formData = new FormData();
+    formData.append('citizenId', citizenId);
+    formData.append('location', location);
+    formData.append('image', image);
+    return api.post('/requests/with-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(res => res.data);
+  },
     
   getCitizenRequests: (citizenId: string) => 
     api.get(`/requests/citizen/${citizenId}`).then(res => res.data),
