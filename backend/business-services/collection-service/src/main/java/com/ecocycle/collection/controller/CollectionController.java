@@ -18,6 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/collections")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class CollectionController {
 
     private final CollectionService collectionService;
