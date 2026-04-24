@@ -28,6 +28,7 @@ export const CitizenRequestView = () => {
   const [type, setType] = useState('RECYCLABLE');
   const [location, setLocation] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -75,17 +76,25 @@ export const CitizenRequestView = () => {
     }
     try {
       setSubmitting(true);
-      await collectionApi.createRequest({
-        citizenId: user.userId,
-        type,
-        location,
-        imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image'
-      });
+      if (imageFile) {
+        // Upload file cho AI nhận diện và tạo request
+        await collectionApi.createRequestWithImage(user.userId, location, imageFile);
+      } else {
+        // Tạo request bình thường (không AI)
+        await collectionApi.createRequest({
+          citizenId: user.userId,
+          type,
+          location,
+          imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image'
+        });
+      }
       setShowForm(false);
       setLocation('');
       setImageUrl('');
+      setImageFile(null);
       setType('RECYCLABLE');
       fetchRequests(); // reload list
+      alert('Tạo yêu cầu thành công!');
     } catch (error) {
       alert('Tạo yêu cầu thất bại. Vui lòng thử lại.');
       console.error(error);
@@ -129,7 +138,7 @@ export const CitizenRequestView = () => {
             {/* Waste Type */}
             <div>
               <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                Loại rác thải của bạn
+                Loại rác thải của bạn <span style={{fontSize: 12, fontWeight: 400}}>(Nếu tải ảnh lên, AI sẽ tự động nhận diện lại loại rác này)</span>
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                 {WASTE_TYPES.map(w => (
@@ -173,20 +182,32 @@ export const CitizenRequestView = () => {
               </div>
             </div>
 
-            {/* Image Upload Mock */}
+            {/* Image Upload for AI */}
             <div>
               <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                Ảnh chụp hiện trạng rác (Tùy chọn)
+                Ảnh chụp hiện trạng rác (Tùy chọn - Dùng AI nhận diện)
               </label>
-              <input 
-                type="text" 
-                value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Dán link ảnh (hoặc hệ thống sẽ dùng ảnh mặc định)"
-                style={{
-                  width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)',
-                  padding: '14px 16px', borderRadius: 12, color: 'var(--text)', fontSize: 15, boxSizing: 'border-box'
-                }}
-              />
+              <div style={{
+                background: 'var(--bg-input)', border: '1px dashed var(--border)', 
+                padding: '20px', borderRadius: 12, textAlign: 'center', cursor: 'pointer'
+              }}>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setImageFile(file);
+                  }}
+                  style={{
+                    width: '100%', color: 'var(--text)', fontSize: 14
+                  }}
+                />
+                {imageFile && (
+                  <p style={{marginTop: 8, color: 'var(--green-400)', fontSize: 13}}>
+                    ✅ Đã chọn ảnh: {imageFile.name}. Khi gửi, AI sẽ tự động phân loại!
+                  </p>
+                )}
+              </div>
             </div>
 
             <button type="submit" disabled={submitting}
