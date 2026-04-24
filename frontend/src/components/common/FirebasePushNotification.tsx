@@ -23,7 +23,7 @@ export default function FirebasePushNotification() {
           // (Giả sử bạn đã có AuthContext và có userId, ở đây minh họa cách gửi)
           const userId = localStorage.getItem('userId'); // Hoặc lấy từ useAuth()
           if (userId) {
-            axios.post('http://localhost:8085/api/v1/device-tokens', {
+            axios.post('http://localhost:8080/api/v1/device-tokens', {
               userId: userId,
               token: token,
               deviceType: "WEB"

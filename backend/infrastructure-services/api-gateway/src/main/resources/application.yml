@@ -26,10 +26,10 @@ spring:
             - AuthenticationFilter
 
         # === COLLECTION SERVICE ===
-        - id: collection-service-route
+        - id: collection-requests-route
           uri: lb://collection-service
           predicates:
-            - Path=/api/v1/requests/**
+            - Path=/api/v1/collections/request, /api/v1/collections/requests/**
           filters:
             - name: AuthenticationFilter
               args:
@@ -40,7 +40,7 @@ spring:
         - id: collection-tasks-route
           uri: lb://collection-service
           predicates:
-            - Path=/api/v1/tasks/**
+            - Path=/api/v1/collections/tasks/**
           filters:
             - name: AuthenticationFilter
               args:
@@ -67,7 +67,7 @@ spring:
         - id: feedback-route
           uri: lb://notification-service
           predicates:
-            - Path=/api/v1/feedbacks/**
+            - Path=/api/v1/feedback/**
           filters:
             - AuthenticationFilter
 
