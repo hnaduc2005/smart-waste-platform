@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -24,5 +27,11 @@ public class UserController {
     public ResponseEntity<UserProfileBase> getUserProfile(@PathVariable UUID id) {
         UserProfileBase profile = userService.getUserProfile(id);
         return ResponseEntity.ok(profile);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserProfileBase> updateUserProfile(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
+        UserProfileBase updatedProfile = userService.updateProfile(id, updates);
+        return ResponseEntity.ok(updatedProfile);
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -76,5 +77,26 @@ public class UserService {
     public UserProfileBase getUserProfile(UUID userId) {
         return userProfileRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Profile not found for user: " + userId));
+    }
+
+    @Transactional
+    public UserProfileBase updateProfile(UUID userId, Map<String, Object> updates) {
+        UserProfileBase profile = getUserProfile(userId);
+        
+        if (profile instanceof CitizenProfile) {
+            CitizenProfile cp = (CitizenProfile) profile;
+            if (updates.containsKey("fullName")) cp.setFullName((String) updates.get("fullName"));
+            if (updates.containsKey("address")) cp.setAddress((String) updates.get("address"));
+        } else if (profile instanceof CollectorProfile) {
+            CollectorProfile cp = (CollectorProfile) profile;
+            if (updates.containsKey("fullName")) cp.setFullName((String) updates.get("fullName"));
+            if (updates.containsKey("vehiclePlate")) cp.setVehiclePlate((String) updates.get("vehiclePlate"));
+            if (updates.containsKey("isOnline")) cp.setIsOnline((Boolean) updates.get("isOnline"));
+        } else if (profile instanceof EnterpriseProfile) {
+            EnterpriseProfile ep = (EnterpriseProfile) profile;
+            if (updates.containsKey("companyName")) ep.setCompanyName((String) updates.get("companyName"));
+        }
+        
+        return userProfileRepository.save(profile);
     }
 }
