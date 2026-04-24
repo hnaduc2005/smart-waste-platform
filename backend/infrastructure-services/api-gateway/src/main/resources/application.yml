@@ -29,22 +29,12 @@ spring:
         - id: collection-service-route
           uri: lb://collection-service
           predicates:
-            - Path=/api/v1/requests/**
+            - Path=/api/v1/collections/**
           filters:
             - name: AuthenticationFilter
               args:
                 allowedRoles:
                   - CITIZEN
-                  - ENTERPRISE
-
-        - id: collection-tasks-route
-          uri: lb://collection-service
-          predicates:
-            - Path=/api/v1/tasks/**
-          filters:
-            - name: AuthenticationFilter
-              args:
-                allowedRoles:
                   - COLLECTOR
                   - ENTERPRISE
 

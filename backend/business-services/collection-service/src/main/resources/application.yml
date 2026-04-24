@@ -1,14 +1,11 @@
+app:
+  ai-service:
+    url: http://localhost:8000
 spring:
   application:
     name: collection-service
   config:
     import: optional:configserver:http://localhost:8888
-
-app:
-  ai-service:
-    url: http://localhost:8000
-
-
   datasource:
     url: jdbc:postgresql://localhost:5432/collection_db
     username: ecocycle
@@ -16,7 +13,6 @@ app:
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
-
   jpa:
     hibernate:
       ddl-auto: update

@@ -22,9 +22,7 @@ export const collectionApi = {
     formData.append('citizenId', citizenId);
     formData.append('location', location);
     formData.append('image', image);
-    return api.post('/requests/with-image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }).then(res => res.data);
+    return api.post('/requests/with-image', formData).then(res => res.data);
   },
     
   getCitizenRequests: (citizenId: string) => 
