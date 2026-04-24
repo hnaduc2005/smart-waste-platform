@@ -18,17 +18,18 @@ interface NavItem {
   id: string;
   active?: boolean;
   badge?: number;
+  roles?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true },
-  { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests' },
-  { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks' },
-  { icon: '🏆', label: 'Điểm thưởng', id: 'rewards' },
-  { icon: '📊', label: 'Báo cáo', id: 'reports' },
-  { icon: '🗺️', label: 'Bản đồ', id: 'map' },
-  { icon: '🔔', label: 'Thông báo', id: 'notifications' },
-  { icon: '⚙️', label: 'Cài đặt', id: 'settings' },
+  { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true, roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
+  { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests', roles: ['CITIZEN', 'ENTERPRISE'] },
+  { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks', roles: ['COLLECTOR', 'ENTERPRISE'] },
+  { icon: '🏆', label: 'Điểm thưởng', id: 'rewards', roles: ['CITIZEN', 'COLLECTOR'] },
+  { icon: '📊', label: 'Báo cáo', id: 'reports', roles: ['CITIZEN', 'ENTERPRISE'] },
+  { icon: '🗺️', label: 'Bản đồ', id: 'map', roles: ['COLLECTOR', 'ENTERPRISE'] },
+  { icon: '🔔', label: 'Thông báo', id: 'notifications', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
+  { icon: '⚙️', label: 'Cài đặt', id: 'settings', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
 ];
 
 const STATS_BASE = [
@@ -177,7 +178,7 @@ export default function DashboardPage() {
 
         {/* Nav */}
         <div style={{ flex: 1, padding: '16px 12px' }}>
-          {NAV_ITEMS.map(item => (
+          {NAV_ITEMS.filter(item => !item.roles || !user?.role || item.roles.includes(user.role)).map(item => (
             <button key={item.id} onClick={() => setActiveNav(item.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
@@ -231,11 +232,11 @@ export default function DashboardPage() {
       {/* ── Main content ── */}
       <main style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
 
-        {activeNav === 'requests' && <CitizenRequestView />}
-        {activeNav === 'map' && <MapDispatcher />}
-        {activeNav === 'tasks' && <CollectorTasksView />}
-        {activeNav === 'rewards' && <RewardView />}
-        {activeNav === 'reports' && <CitizenReportView />}
+        {activeNav === 'requests' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenRequestView />}
+        {activeNav === 'map' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <MapDispatcher />}
+        {activeNav === 'tasks' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <CollectorTasksView />}
+        {activeNav === 'rewards' && ['CITIZEN', 'COLLECTOR'].includes(user?.role || '') && <RewardView />}
+        {activeNav === 'reports' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenReportView />}
         {activeNav === 'notifications' && <NotificationView />}
         {activeNav === 'settings' && <UserProfileView />}
 
@@ -275,11 +276,12 @@ export default function DashboardPage() {
         <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
           {[
-            { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests') },
-            { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier') },
-            { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map') },
-            { icon: '🏅', label: 'Đổi điểm thưởng', action: () => setActiveNav('rewards') },
-          ].map(a => (
+            { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests'), roles: ['CITIZEN', 'ENTERPRISE'] },
+            { icon: '🚚', label: 'Nhiệm vụ thu gom', action: () => setActiveNav('tasks'), roles: ['COLLECTOR'] },
+            { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier'), roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
+            { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map'), roles: ['COLLECTOR', 'ENTERPRISE'] },
+            { icon: '🏅', label: 'Đổi điểm thưởng', action: () => setActiveNav('rewards'), roles: ['CITIZEN'] },
+          ].filter(a => !a.roles || !user?.role || a.roles.includes(user.role)).map(a => (
             <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}>
