@@ -10,7 +10,9 @@ import com.ecocycle.collection.service.CollectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +30,14 @@ public class CollectionController {
     @PostMapping({"/requests", "/request"})
     public ResponseEntity<WasteRequest> createWasteRequest(@RequestBody CreateWasteRequestDto dto) {
         return new ResponseEntity<>(collectionService.createWasteRequest(dto), HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/requests/with-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<WasteRequest> createWasteRequestWithImage(
+            @RequestParam("citizenId") UUID citizenId,
+            @RequestParam("location") String location,
+            @RequestPart("image") MultipartFile image) {
+        return new ResponseEntity<>(collectionService.detectAndCreateWasteRequest(citizenId, location, image), HttpStatus.CREATED);
     }
 
     @GetMapping("/requests/citizen/{citizenId}")

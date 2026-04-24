@@ -104,12 +104,20 @@ export default function WasteDetector() {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const location = `${position.coords.latitude},${position.coords.longitude}`;
-          await collectionApi.createRequest({
-            citizenId: user.userId,
-            type: mainType,
-            location: location,
-            imageUrl: 'https://via.placeholder.com/300?text=AI+Processed+Image' // Idealy we upload img, but use placeholder for now
-          });
+          
+          if (!selectedFile) {
+            alert("No image selected");
+            setSubmitting(false);
+            return;
+          }
+
+          // Use the new API that forwards the image to the backend for native AI validation
+          await collectionApi.createRequestWithImage(
+            user.userId,
+            location,
+            selectedFile
+          );
+          
           setSubmitSuccess(true);
           setSubmitting(false);
         },

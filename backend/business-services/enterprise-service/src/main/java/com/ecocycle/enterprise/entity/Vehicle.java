@@ -18,11 +18,25 @@ public class Vehicle {
     @Column(nullable = false, unique = true)
     private String licensePlate; // Biển số xe
 
+    /** Tải trọng chuyên chở tối đa (Đơn vị: Tấn) */
     @Column(nullable = false)
-    private Double maxPayload; // Tải trọng chuyên chở tối đa (Đơn vị: Tấn)
+    private Double maxPayload;
 
+    /**
+     * Trạng thái: AVAILABLE (Sẵn sàng), ON_DUTY (Đang đi gom), MAINTENANCE (Bảo trì)
+     */
     @Column(nullable = false)
-    private String currentStatus; // Trạng thái: AVAILABLE (Sẵn sàng), ON_DUTY (Đang đi gom), MAINTENANCE (Bảo trì)
+    @Builder.Default
+    private String currentStatus = "AVAILABLE";
+
+    /** Loại xe: TRUCK, MOTORBIKE, VAN */
+    @Column(name = "vehicle_type")
+    @Builder.Default
+    private String vehicleType = "TRUCK";
+
+    /** userId của Collector được giao xe này (từ auth-service) */
+    @Column(name = "assigned_collector_id")
+    private String assignedCollectorId;
 
     // Chiếc xe này thuộc quyền quản lý của doanh nghiệp nào
     @ManyToOne(fetch = FetchType.LAZY)
