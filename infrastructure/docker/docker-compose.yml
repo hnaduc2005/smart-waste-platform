@@ -200,6 +200,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/collection_db
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      APP_AI_SERVICE_URL: http://waste-classifier:8000
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -303,17 +304,17 @@ services:
     networks:
       - ecocycle-network
 
-#   waste-classifier:
-#     build:
-#       context: ../../backend/ai-services/waste-classifier
-#       dockerfile: Dockerfile
-#     image: ecocycle/waste-classifier:latest
-#     container_name: ecocycle-waste-classifier
-#     restart: always
-#     ports:
-#       - "8000:8000"
-#     networks:
-#       - ecocycle-network
+  waste-classifier:
+    build:
+      context: ../../backend/ai-services/waste-classifier
+      dockerfile: Dockerfile
+    image: ecocycle/waste-classifier:latest
+    container_name: ecocycle-waste-classifier
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - ecocycle-network
 
 
   # =========================================================
