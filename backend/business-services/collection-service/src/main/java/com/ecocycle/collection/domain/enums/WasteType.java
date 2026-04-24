@@ -4,5 +4,6 @@ public enum WasteType {
     ORGANIC,
     RECYCLABLE,
     HAZARDOUS,
-    ELECTRONIC
+    ELECTRONIC,
+    BULKY
 }

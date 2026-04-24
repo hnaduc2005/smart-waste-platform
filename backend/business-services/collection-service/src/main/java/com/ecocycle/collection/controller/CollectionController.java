@@ -26,9 +26,9 @@ public class CollectionController {
     private final CollectionService collectionService;
 
     // --- Citizen APIs ---
-
     @PostMapping({"/requests", "/request"})
     public ResponseEntity<WasteRequest> createWasteRequest(@RequestBody CreateWasteRequestDto dto) {
+        System.out.println("DEBUG: createWasteRequest called for citizen " + dto.getCitizenId());
         return new ResponseEntity<>(collectionService.createWasteRequest(dto), HttpStatus.CREATED);
     }
 
@@ -36,7 +36,8 @@ public class CollectionController {
     public ResponseEntity<WasteRequest> createWasteRequestWithImage(
             @RequestParam("citizenId") UUID citizenId,
             @RequestParam("location") String location,
-            @RequestPart("image") MultipartFile image) {
+            @RequestParam("image") MultipartFile image) {
+        System.out.println("DEBUG: createWasteRequestWithImage called for citizen " + citizenId + ", location " + location);
         return new ResponseEntity<>(collectionService.detectAndCreateWasteRequest(citizenId, location, image), HttpStatus.CREATED);
     }
 
