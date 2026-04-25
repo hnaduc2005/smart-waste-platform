@@ -17,10 +17,11 @@ api.interceptors.request.use((config) => {
 });
 
 // Handle 401 → clear tokens (token expired or blacklisted)
+// Skip redirect if already on /login (e.g. wrong credentials on login form)
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !window.location.pathname.includes('/login')) {
       tokenStore.clear();
       window.location.href = '/login';
     }

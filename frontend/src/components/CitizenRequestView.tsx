@@ -70,6 +70,7 @@ export const CitizenRequestView = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.userId) return;
     if (!location) {
       alert('Vui lòng cung cấp tọa độ GPS!');
       return;
@@ -164,8 +165,8 @@ export const CitizenRequestView = () => {
               </label>
               <div style={{ display: 'flex', gap: 12 }}>
                 <input 
-                  type="text" required readOnly 
-                  value={location} placeholder="Nhấn vào nút bên cạnh để lấy vị trí..."
+                  type="text" required 
+                  value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Nhập địa chỉ hoặc lấy GPS..."
                   style={{
                     flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
                     padding: '14px 16px', borderRadius: 12, color: 'var(--text)', fontSize: 15, fontFamily: 'inherit'
@@ -247,7 +248,7 @@ export const CitizenRequestView = () => {
               </thead>
               <tbody>
                 {requests.map(r => {
-                  const statusConf = STATUS_MAP[r.status] || { label: r.status, color: '#ccc', bg: 'rgba(255,255,255,0.1)' };
+                  const statusConf = STATUS_MAP[r.status as keyof typeof STATUS_MAP] || { label: r.status, color: '#ccc', bg: 'rgba(255,255,255,0.1)' };
                   const typeLabel = WASTE_TYPES.find(w => w.value === r.type)?.label || r.type;
                   return (
                     <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>

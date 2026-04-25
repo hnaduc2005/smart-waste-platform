@@ -30,14 +30,20 @@ export const RewardView = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleRedeem = () => {
+  const handleRedeem = (cost: number) => {
+    setErrorMsg('');
+    if (currentPoints < cost) {
+      setErrorMsg(`Rất tiếc! Bạn cần thêm ${(cost - currentPoints).toLocaleString()} EcoP nữa để đổi phần quà này.`);
+      return;
+    }
     setRedeemSuccess(true);
     setTimeout(() => {
       setRedeemSuccess(false);
       setIsModalOpen(false);
       // Giả lập trừ điểm
-      setCurrentPoints(prev => Math.max(0, prev - 500));
+      setCurrentPoints(prev => Math.max(0, prev - cost));
     }, 2000);
   };
 
@@ -111,7 +117,7 @@ export const RewardView = () => {
             
             <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => { setIsModalOpen(true); setErrorMsg(''); }}
                 style={{ 
                   background: 'white', color: '#065f46', fontWeight: 700, padding: '12px 24px', 
                   borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
@@ -261,7 +267,7 @@ export const RewardView = () => {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 28, width: '100%', maxWidth: 500, padding: 32, position: 'relative', animation: 'slideDown 0.2s ease' }}>
             <button 
-              onClick={() => setIsModalOpen(false)} 
+              onClick={() => { setIsModalOpen(false); setErrorMsg(''); }} 
               style={{ position: 'absolute', right: 24, top: 24, background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
             >
               <X size={24} />
@@ -280,6 +286,12 @@ export const RewardView = () => {
                 <h3 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 8px' }}>Đổi phần thưởng 🎁</h3>
                 <p style={{ color: 'var(--text-secondary)', margin: '0 0 24px' }}>Chọn gói ưu đãi bạn muốn đổi bằng EcoP.</p>
                 
+                {errorMsg && (
+                  <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '12px 16px', borderRadius: 12, marginBottom: 20, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.3s ease' }}>
+                    <span>⚠️</span> {errorMsg}
+                  </div>
+                )}
+                
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
                   {[
                     { id: 1, title: 'Voucher Highland Coffee 50k', cost: 500, icon: '☕' },
@@ -288,7 +300,7 @@ export const RewardView = () => {
                   ].map(item => (
                     <div 
                       key={item.id} 
-                      onClick={handleRedeem}
+                      onClick={() => handleRedeem(item.cost)}
                       style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, cursor: 'pointer' }}
                     >
                       <div style={{ fontSize: 24 }}>{item.icon}</div>
@@ -301,7 +313,7 @@ export const RewardView = () => {
                   ))}
                 </div>
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
-                  Số dư sau khi đổi: <b style={{ color: 'var(--green-400)' }}>{(currentPoints - 500).toLocaleString()} EcoP</b>
+                  Số dư hiện tại: <b style={{ color: 'var(--green-400)' }}>{currentPoints.toLocaleString()} EcoP</b>
                 </div>
               </>
             )}

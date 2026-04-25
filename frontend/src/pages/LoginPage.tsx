@@ -7,7 +7,6 @@ import AuthBrandSide from '../components/AuthBrandSide';
 import GlassCard from '../components/GlassCard';
 import FormInput from '../components/FormInput';
 import Button from '../components/Button';
-import Alert from '../components/Alert';
 
 const BRAND_STATS = [
   { value: '12K+', label: 'Người dùng' },
@@ -21,43 +20,106 @@ const BRAND_FEATURES = [
   { icon: '📊', label: 'Dashboard phân tích dữ liệu cho doanh nghiệp' },
 ];
 
+type ToastType = 'success' | 'error' | 'loading' | '';
+
+interface ToastData {
+  type: ToastType;
+  msg: string;
+}
+
+const TOAST_STYLES = {
+  success: { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.4)',  color: '#86efac' },
+  error:   { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.4)',  color: '#fca5a5' },
+  loading: { bg: 'rgba(234,179,8,0.10)',  border: 'rgba(234,179,8,0.4)',  color: '#fde68a' },
+};
+
+function LoginToast({ toast, onClose }: { toast: ToastData; onClose: () => void }) {
+  if (!toast.type || !toast.msg) return null;
+  const s = TOAST_STYLES[toast.type] || TOAST_STYLES.error;
+  const isLoading = toast.type === 'loading';
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '14px 18px', borderRadius: 14, marginBottom: 24,
+      background: s.bg, border: `1px solid ${s.border}`, color: s.color,
+      fontSize: 14, fontWeight: 500, lineHeight: 1.5,
+      animation: 'toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+      boxShadow: `0 4px 20px ${s.border}`,
+    }}>
+      <span style={{
+        fontSize: 20, flexShrink: 0,
+        display: 'inline-block',
+        animation: isLoading ? 'toastSpin 0.9s linear infinite' : 'none',
+      }}>
+        {toast.type === 'success' ? '✅' : toast.type === 'loading' ? '⏳' : '❌'}
+      </span>
+      <span style={{ flex: 1 }}>{toast.msg}</span>
+      {!isLoading && (
+        <button
+          onClick={onClose}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: s.color, fontSize: 18, opacity: 0.65, padding: 0, lineHeight: 1, marginLeft: 4 }}
+        >✕</button>
+      )}
+      <style>{`
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+          to   { opacity: 1; transform: translateY(0)     scale(1);    }
+        }
+        @keyframes toastSpin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [form, setForm]     = useState({ username: '', password: '' });
-  const [errors, setErrors] = useState({});
-  const [alert, setAlert]   = useState({ msg: '', type: 'error' });
+  const [form, setForm]   = useState({ username: '', password: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<ToastData>({ type: '', msg: '' });
   const [loading, setLoading] = useState(false);
 
-  const set = (field) => (e) => {
+  const clearToast = () => setToast({ type: '', msg: '' });
+
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
     setErrors(prev => ({ ...prev, [field]: '' }));
+    clearToast();
   };
 
   const validate = () => {
-    const errs = {};
+    const errs: Record<string, string> = {};
     if (!form.username.trim()) errs.username = 'Vui lòng nhập username';
     if (!form.password)        errs.password = 'Vui lòng nhập mật khẩu';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAlert({ msg: '', type: 'error' });
+    clearToast();
     if (!validate()) return;
 
     setLoading(true);
+    setToast({ type: 'loading', msg: 'Đang xác thực tài khoản, vui lòng chờ...' });
+
     try {
       await login({ username: form.username, password: form.password });
-      setAlert({ msg: '✅ Đăng nhập thành công! Đang chuyển hướng...', type: 'success' });
-      setTimeout(() => navigate('/dashboard'), 800);
-    } catch (err) {
+      setToast({ type: 'success', msg: '🎉 Đăng nhập thành công! Đang chuyển hướng đến Dashboard...' });
+      setTimeout(() => navigate('/dashboard'), 1200);
+    } catch (err: any) {
       const { message, status } = extractError(err);
-      if (status === 401) setAlert({ msg: 'Sai username hoặc mật khẩu. Vui lòng thử lại.', type: 'error' });
-      else if (status === 403) setAlert({ msg: 'Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ.', type: 'error' });
-      else setAlert({ msg: message, type: 'error' });
+      if (status === 401) {
+        setToast({ type: 'error', msg: '🔐 Sai tên đăng nhập hoặc mật khẩu. Vui lòng kiểm tra lại.' });
+      } else if (status === 403) {
+        setToast({ type: 'error', msg: '🚫 Tài khoản của bạn đã bị khóa. Vui lòng liên hệ bộ phận hỗ trợ.' });
+      } else if (!status) {
+        setToast({ type: 'error', msg: '🌐 Không thể kết nối đến máy chủ. Vui lòng kiểm tra đường truyền mạng.' });
+      } else {
+        setToast({ type: 'error', msg: message || 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -92,7 +154,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <Alert message={alert.msg} type={alert.type} onClose={() => setAlert({ msg: '', type: 'error' })} />
+          {/* Toast notification */}
+          <LoginToast toast={toast} onClose={clearToast} />
 
           <form onSubmit={handleSubmit} noValidate>
             <FormInput
@@ -125,7 +188,7 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" loading={loading} style={{ marginTop: 8 }}>
-              Đăng nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </Button>
           </form>
 
