@@ -1,8 +1,7 @@
 package com.ecocycle.enterprise.controller;
 
 import com.ecocycle.enterprise.entity.Vehicle;
-import com.ecocycle.enterprise.repository.VehicleRepository;
-import com.ecocycle.enterprise.repository.EnterpriseRepository;
+import com.ecocycle.enterprise.service.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,29 +14,25 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VehicleController {
 
-    private final VehicleRepository vehicleRepository;
-    private final EnterpriseRepository enterpriseRepository;
+    private final VehicleService vehicleService;
 
     /** GET /api/v1/vehicles — Tất cả xe, có thể lọc theo status */
     @GetMapping
     public ResponseEntity<List<Vehicle>> getVehicles(
             @RequestParam(required = false) String status) {
-        if (status != null) {
-            return ResponseEntity.ok(vehicleRepository.findByCurrentStatus(status.toUpperCase()));
-        }
-        return ResponseEntity.ok(vehicleRepository.findAll());
+        return ResponseEntity.ok(vehicleService.getVehicles(status));
     }
 
     /** GET /api/v1/vehicles/enterprise/{enterpriseId} — Xe theo doanh nghiệp */
     @GetMapping("/enterprise/{enterpriseId}")
     public ResponseEntity<List<Vehicle>> getByEnterprise(@PathVariable Long enterpriseId) {
-        return ResponseEntity.ok(vehicleRepository.findByEnterpriseId(enterpriseId));
+        return ResponseEntity.ok(vehicleService.getByEnterprise(enterpriseId));
     }
 
     /** GET /api/v1/vehicles/{id} — Chi tiết một xe */
     @GetMapping("/{id}")
     public ResponseEntity<Vehicle> getById(@PathVariable Long id) {
-        return vehicleRepository.findById(id)
+        return vehicleService.getById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -45,16 +40,11 @@ public class VehicleController {
     /** POST /api/v1/vehicles — Đăng ký xe mới cho một doanh nghiệp */
     @PostMapping
     public ResponseEntity<?> registerVehicle(@RequestBody Vehicle vehicle) {
-        if (vehicle.getEnterprise() == null || vehicle.getEnterprise().getId() == null) {
-            return ResponseEntity.badRequest().body("enterpriseId is required");
+        try {
+            return ResponseEntity.ok(vehicleService.registerVehicle(vehicle));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        return enterpriseRepository.findById(vehicle.getEnterprise().getId())
-                .map(enterprise -> {
-                    vehicle.setEnterprise(enterprise);
-                    vehicle.setCurrentStatus("AVAILABLE");
-                    return ResponseEntity.ok(vehicleRepository.save(vehicle));
-                })
-                .orElse(ResponseEntity.badRequest().build());
     }
 
     /**
@@ -64,14 +54,13 @@ public class VehicleController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable Long id,
                                           @RequestBody Map<String, String> body) {
-        String newStatus = body.get("status");
-        if (newStatus == null) {
-            return ResponseEntity.badRequest().body("Field 'status' is required");
+        try {
+            return vehicleService.updateStatus(id, body.get("status"))
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        return vehicleRepository.findById(id).map(vehicle -> {
-            vehicle.setCurrentStatus(newStatus.toUpperCase());
-            return ResponseEntity.ok(vehicleRepository.save(vehicle));
-        }).orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -81,23 +70,21 @@ public class VehicleController {
     @PatchMapping("/{id}/assign")
     public ResponseEntity<?> assignCollector(@PathVariable Long id,
                                              @RequestBody Map<String, String> body) {
-        String collectorId = body.get("collectorId");
-        if (collectorId == null) {
-            return ResponseEntity.badRequest().body("Field 'collectorId' is required");
+        try {
+            return vehicleService.assignCollector(id, body.get("collectorId"))
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        return vehicleRepository.findById(id).map(vehicle -> {
-            vehicle.setAssignedCollectorId(collectorId);
-            return ResponseEntity.ok(vehicleRepository.save(vehicle));
-        }).orElse(ResponseEntity.notFound().build());
     }
 
     /** DELETE /api/v1/vehicles/{id} — Xóa xe */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVehicle(@PathVariable Long id) {
-        if (!vehicleRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
+        if (vehicleService.deleteVehicle(id)) {
+            return ResponseEntity.noContent().build();
         }
-        vehicleRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.notFound().build();
     }
 }
