@@ -14,40 +14,7 @@ interface Notification {
   isRead: boolean;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'Điểm thưởng EcoP mới! 🏆',
-    message: 'Bạn vừa nhận được +50 EcoP từ việc thu gom rác hữu cơ.',
-    type: 'REWARD',
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-    isRead: false
-  },
-  {
-    id: '2',
-    title: 'Đơn thu gom đã hoàn thành 🚛',
-    message: 'Nhân viên thu gom Trần Văn A đã hoàn tất việc lấy rác tại địa chỉ của bạn.',
-    type: 'COLLECTION',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    isRead: false
-  },
-  {
-    id: '3',
-    title: 'Cảnh báo phân loại rác sai ⚠️',
-    message: 'Hệ thống AI phát hiện có rác vô cơ lẫn trong túi rác hữu cơ của bạn ở lần thu gom trước. Vui lòng lưu ý!',
-    type: 'ALERT',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    isRead: true
-  },
-  {
-    id: '4',
-    title: 'Chào mừng đến với EcoCycle 🌱',
-    message: 'Cảm ơn bạn đã tham gia cộng đồng bảo vệ môi trường. Hãy bắt đầu phân loại rác ngay hôm nay!',
-    type: 'SYSTEM',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
-    isRead: true
-  }
-];
+
 
 export const NotificationView = () => {
   const { user } = useAuth();
@@ -60,10 +27,8 @@ export const NotificationView = () => {
         const data = await notificationApi.getMine();
         setNotifications(data);
       } catch(e) {
-        // Fallback
-        const savedNotis = localStorage.getItem('eco_notifications');
-        const localNotis = savedNotis ? JSON.parse(savedNotis) : [];
-        setNotifications([...mockNotifications, ...localNotis]);
+        console.error('Failed to fetch notifications', e);
+        setNotifications([]);
       }
     };
     fetchNotis();

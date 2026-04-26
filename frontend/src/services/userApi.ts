@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { tokenStore } from './tokenStore';
 
-const API_BASE = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
+const API_BASE = '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -20,6 +20,9 @@ export const userApi = {
 
   updateProfile: (userId: string, data: any) =>
     api.put(`/users/${userId}`, data).then(r => r.data),
+
+  getCollectors: () =>
+    api.get(`/users/collectors`).then(r => r.data),
 };
 
 export default api;

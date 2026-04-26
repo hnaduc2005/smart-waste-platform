@@ -29,6 +29,11 @@ public class UserController {
         return ResponseEntity.ok(profile);
     }
 
+    @GetMapping("/collectors")
+    public ResponseEntity<java.util.List<UserProfileBase>> getCollectors() {
+        return ResponseEntity.ok(userService.getCollectors());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<UserProfileBase> updateUserProfile(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
         UserProfileBase updatedProfile = userService.updateProfile(id, updates);

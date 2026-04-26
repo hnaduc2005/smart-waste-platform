@@ -17,12 +17,7 @@ export const VehicleManagementView = () => {
       .then(res => setVehicles(res))
       .catch(err => {
         console.error(err);
-        // Fallback mock
-        setVehicles([
-          { id: 1, licensePlate: '59H1-123.45', maxPayload: 3.5, currentStatus: 'AVAILABLE' },
-          { id: 2, licensePlate: '59H1-678.90', maxPayload: 5.0, currentStatus: 'ON_DUTY' },
-          { id: 3, licensePlate: '59P2-444.22', maxPayload: 2.5, currentStatus: 'MAINTENANCE' },
-        ]);
+        setVehicles([]);
       })
       .finally(() => setLoading(false));
   };

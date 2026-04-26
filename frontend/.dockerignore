@@ -1,0 +1,5 @@
+node_modules
+dist
+.env
+.git
+frontend_dev_output.txt

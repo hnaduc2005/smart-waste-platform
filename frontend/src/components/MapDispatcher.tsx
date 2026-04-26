@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { collectionApi } from '../services/collectionApi';
 import { notificationApi } from '../services/notificationApi';
+import { userApi } from '../services/userApi';
 
 // Cố định lỗi icon mặc định của leaflet khi dùng react
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -33,29 +34,7 @@ const greenIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-let MOCK_COLLECTORS = [
-  { id: '6a028d3a-cba0-4ea0-8468-4decfb95da14', name: 'suu123 (Tài xế)', status: 'Sẵn sàng', coords: [10.824, 106.63] },
-  { id: '11111111-1111-1111-1111-111111111111', name: 'Trần Bác Kim', status: 'Đang đi nhận rác', coords: [10.820, 106.621] },
-  { id: '22222222-2222-2222-2222-222222222222', name: 'Lê Hoàng Hùng', status: 'Sẵn sàng', coords: [10.811, 106.645] },
-];
 
-try {
-  const saved = localStorage.getItem('eco_all_users');
-  if (saved) {
-    const users = JSON.parse(saved);
-    const realCollectors = users.filter((u: any) => u.role === 'COLLECTOR' || u.role === 'Công nhân thu gom' || u.username.includes('gom'));
-    realCollectors.forEach((c: any) => {
-      if (!MOCK_COLLECTORS.find(mc => mc.id === c.userId)) {
-        MOCK_COLLECTORS.push({
-          id: c.userId,
-          name: c.username + ' (Thực)',
-          status: 'Sẵn sàng',
-          coords: c.coords || [10.824, 106.63]
-        });
-      }
-    });
-  }
-} catch (e) {}
 
 const WASTE_TYPE_MAP: Record<string, string> = {
   'RECYCLABLE': '♻️ Rác tái chế (Nhựa, Giấy, Kim loại)',
@@ -67,8 +46,25 @@ const WASTE_TYPE_MAP: Record<string, string> = {
 
 export const MapDispatcher = () => {
   const [requests, setRequests] = useState<any[]>([]);
+  const [collectors, setCollectors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigningId, setAssigningId] = useState<string | null>(null);
+
+  const fetchCollectors = async () => {
+    try {
+      const data = await userApi.getCollectors();
+      const mapped = data.map((c: any, index: number) => ({
+        id: c.id,
+        name: c.fullName || 'Tài xế',
+        status: c.isOnline ? 'Sẵn sàng' : 'Không hoạt động',
+        coords: [10.824 + index * 0.005, 106.63 + index * 0.005]
+      }));
+      setCollectors(mapped);
+    } catch (e) {
+      console.error(e);
+      setCollectors([]);
+    }
+  };
 
   const fetchPending = async () => {
     try {
@@ -77,24 +73,7 @@ export const MapDispatcher = () => {
       setRequests(data);
     } catch (e) {
       console.error(e);
-      // Fallback mock nếu backend chưa cắm DB hoặc gặp lỗi
-      const mockPending = [
-        { id: '33333333-3333-3333-3333-333333333333', type: 'RECYCLABLE', location: '10.823,106.629', status: 'PENDING', citizenId: '44444444-4444-4444-4444-444444444444' },
-        { id: '55555555-5555-5555-5555-555555555555', type: 'BULKY', location: '10.818,106.635', status: 'PENDING', citizenId: '66666666-6666-6666-6666-666666666666' },
-        { id: '77777777-7777-7777-7777-777777777777', type: 'ORGANIC', location: '10.830,106.625', status: 'PENDING', citizenId: '88888888-8888-8888-8888-888888888888' },
-      ];
-      
-      try {
-        const savedTasks = localStorage.getItem('eco_assigned_tasks');
-        if (savedTasks) {
-          const assignedIds = JSON.parse(savedTasks).map((t: any) => t.request?.id);
-          setRequests(mockPending.filter(req => !assignedIds.includes(req.id)));
-        } else {
-          setRequests(mockPending);
-        }
-      } catch (err) {
-        setRequests(mockPending);
-      }
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -102,6 +81,7 @@ export const MapDispatcher = () => {
 
   useEffect(() => {
     fetchPending();
+    fetchCollectors();
   }, []);
 
   const handleAssign = async (reqId: string, collectorId: string) => {
@@ -208,7 +188,7 @@ export const MapDispatcher = () => {
           />
 
           {/* Render Collectors (Green) */}
-          {MOCK_COLLECTORS.map(col => (
+          {collectors.map(col => (
             <Marker key={col.id} position={col.coords as any} icon={greenIcon}>
               <Popup>
                 <div style={{ padding: 4 }}>
@@ -256,7 +236,7 @@ export const MapDispatcher = () => {
                       style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ccc' }}
                     >
                       <option value="">-- Chọn tài xế --</option>
-                      {MOCK_COLLECTORS.filter(c => c.status === 'Sẵn sàng').map(c => (
+                      {collectors.filter(c => c.status === 'Sẵn sàng').map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -278,7 +258,7 @@ export const MapDispatcher = () => {
             Danh sách các tài xế hiện đang làm việc trên hệ thống. Trạng thái của họ sẽ được cập nhật theo thời gian thực.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {MOCK_COLLECTORS.map(col => (
+            {collectors.map(col => (
               <div 
                 key={col.id} 
                 style={{ 
@@ -344,7 +324,7 @@ export const MapDispatcher = () => {
                   style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--green-400)', fontSize: 12, fontWeight: 600, outline: 'none' }}
                 >
                   <option value="">-- Chọn tài xế để gán --</option>
-                  {MOCK_COLLECTORS.filter(c => c.status === 'Sẵn sàng').map(c => (
+                  {collectors.filter(c => c.status === 'Sẵn sàng').map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>

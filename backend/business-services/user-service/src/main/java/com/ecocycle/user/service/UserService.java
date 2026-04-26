@@ -79,6 +79,10 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Profile not found for user: " + userId));
     }
 
+    public java.util.List<UserProfileBase> getCollectors() {
+        return userProfileRepository.findByRole(Role.COLLECTOR);
+    }
+
     @Transactional
     public UserProfileBase updateProfile(UUID userId, Map<String, Object> updates) {
         UserProfileBase profile = getUserProfile(userId);
