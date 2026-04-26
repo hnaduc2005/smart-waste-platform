@@ -4,18 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { Info, Trophy, Truck, X } from 'lucide-react';
 import axios from 'axios';
 
+interface PushNotification {
+  title: string;
+  body: string;
+  type: string;
+}
+
 export default function FirebasePushNotification() {
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<PushNotification | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // ==== 1. Yêu cầu quyền Browser và Lấy Token ====
-    // BẠN CẦN LẤY VAPID KEY Ở FIREBASE CONSOLE (Project Settings -> Cloud Messaging -> Web Push certificates)
     const validVapidKey = "BEO7taTVDswTEZ-jq90SZmdTSzhQI5vIha6TFgyVojmX94Xardobv-wn_Om4Qpdt6MmJjoO-Two3S8HNG4PGpnM";
 
-    // Lưu ý: Chỉ yêu cầu token nếu key đã được điền để tránh văng lỗi đỏ
-    if (validVapidKey !== "ĐIỀN_VAPID_KEY_CỦA_BẠN_VÀO_ĐÂY") {
-      requestFirebaseToken(validVapidKey).then((token) => {
+    requestFirebaseToken(validVapidKey).then((token) => {
+
         if (token) {
           console.log('FCM Token sẵn sàng để Backend sử dụng:', token);
 
@@ -32,7 +35,6 @@ export default function FirebasePushNotification() {
           }
         }
       });
-    }
 
     // ==== 2. Lắng nghe Notify khi trình duyệt Đang Mở (Foreground) ====
     const unsubscribe = onMessageListener((payload) => {

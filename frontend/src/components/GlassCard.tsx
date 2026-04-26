@@ -1,5 +1,13 @@
+import React from 'react';
+
+interface GlassCardProps {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+  className?: string;
+}
+
 /** Glassmorphism card */
-export default function GlassCard({ children, style = {}, className = '' }) {
+export default function GlassCard({ children, style = {}, className = '' }: GlassCardProps) {
   return (
     <div
       className={className}
