@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collectionApi } from '../services/collectionApi';
 import { useAuth } from '../context/AuthContext';
+import { notificationApi } from '../services/notificationApi';
 
 const STATUS_MAP = {
   ASSIGNED: { label: 'Chờ thu gom', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
@@ -48,11 +49,32 @@ export const CollectorTasksView = () => {
     // Optimistic update UI immediately
     setTasks(ts => ts.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
     
+    const targetTask = tasks.find(t => t.id === taskId);
+
     if (newStatus === 'ON_THE_WAY') {
-      const targetTask = tasks.find(t => t.id === taskId);
       if (targetTask?.request?.location) {
         window.open(`https://maps.google.com/?q=${targetTask.request.location}`, '_blank');
       }
+      
+      // Notify citizen
+      if (targetTask?.request?.citizenId) {
+        notificationApi.create({
+          userId: targetTask.request.citizenId,
+          title: 'Tài xế đang đến thu gom! 🚚',
+          message: `Đơn rác (ID: ${targetTask.request.id?.substring(0,8)}) sắp được thu gom. Xin vui lòng chuẩn bị.`,
+          type: 'COLLECTION',
+          isRead: false
+        }).catch(console.warn);
+      }
+
+      // Notify enterprise
+      notificationApi.create({
+        targetRole: 'ENTERPRISE',
+        title: 'Cập nhật tiến trình: Đang đến 🚚',
+        message: `Tài xế vừa bắt đầu di chuyển đến điểm thu gom (ID: ${targetTask?.request?.id?.substring(0,8)}).`,
+        type: 'SYSTEM',
+        isRead: false
+      }).catch(console.warn);
     }
 
     // Call real status-update API to sync across services
@@ -78,6 +100,27 @@ export const CollectorTasksView = () => {
         photoUrl: photoUrl || 'https://via.placeholder.com/400?text=Collected+Waste',
         weight: Number(weight)
       });
+      
+      // Notify citizen
+      if (selectedTask.request?.citizenId) {
+        notificationApi.create({
+          userId: selectedTask.request.citizenId,
+          title: 'Rác của bạn đã được thu gom thành công! ✅',
+          message: `Đơn (ID: ${selectedTask.request.id?.substring(0,8)}) nặng ${weight}kg đã thu gom xong. Hệ thống đang tính điểm thưởng cho bạn.`,
+          type: 'SYSTEM',
+          isRead: false
+        }).catch(console.warn);
+      }
+
+      // Notify enterprise
+      notificationApi.create({
+        targetRole: 'ENTERPRISE',
+        title: 'Cập nhật tiến trình: Đã hoàn thành ✅',
+        message: `Tài xế vừa hoàn thành thu gom đơn (ID: ${selectedTask.request?.id?.substring(0,8)}) với trọng lượng ${weight}kg.`,
+        type: 'SYSTEM',
+        isRead: false
+      }).catch(console.warn);
+
       setStatusMsg({ type: 'success', text: '🎉 Đã ghi nhận hoàn thành cuốc rác!' });
       setTimeout(() => setStatusMsg(null), 4000);
       setSelectedTask(null);
