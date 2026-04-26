@@ -6,9 +6,9 @@ spring:
     name: enterprise-service
   datasource:
     # URL Database riêng của service (Mô hình Database-per-service)
-    url: jdbc:postgresql://localhost:5432/ecocycle_enterprise
-    username: postgres
-    password: root
+    url: jdbc:postgresql://${DB_HOST:postgres-db}:${DB_PORT:5432}/ecocycle_enterprise
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -23,6 +23,6 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://discovery-server:8761/eureka/}
     fetch-registry: true
     register-with-eureka: true

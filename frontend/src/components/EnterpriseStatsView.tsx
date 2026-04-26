@@ -6,7 +6,7 @@ import {
   Cell, PieChart, Pie, Legend
 } from 'recharts';
 
-const ENTERPRISE_API = 'http://localhost:8080/api/v1/enterprises';
+const ENTERPRISE_API = `${import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1'}/enterprises`;
 const COLORS = ['#22c55e', '#14b8a6', '#f59e0b', '#ef4444'];
 
 interface SystemOverview {

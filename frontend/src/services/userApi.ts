@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { tokenStore } from './tokenStore';
 
-const API_BASE = 'http://localhost:8080/api/v1';
+const API_BASE = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,

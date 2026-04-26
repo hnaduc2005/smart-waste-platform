@@ -1,13 +1,13 @@
 app:
   ai-service:
-    url: http://localhost:8000
+    url: ${APP_AI_SERVICE_URL:http://waste-classifier:8000}
 spring:
   application:
     name: collection-service
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${SPRING_CLOUD_CONFIG_URI:http://config-server:8888}
   datasource:
-    url: jdbc:postgresql://localhost:5432/collection_db
+    url: jdbc:postgresql://${DB_HOST:postgres-db}:${DB_PORT:5432}/collection_db
     username: ecocycle
     password: ecocycle_password
     driver-class-name: org.postgresql.Driver
@@ -22,7 +22,7 @@ spring:
     show-sql: false
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
     consumer:
       group-id: collection-service-group
       auto-offset-reset: earliest
@@ -42,7 +42,7 @@ eureka:
     prefer-ip-address: true
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://discovery-server:8761/eureka/}
 
 management:
   endpoints:

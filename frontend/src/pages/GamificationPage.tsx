@@ -260,7 +260,7 @@ export default function GamificationPage() {
           onClose={() => setIsFeedbackOpen(false)}
           onSubmit={async (rating, comment) => {
             try {
-              await axios.post('http://localhost:8080/api/v1/feedback', {
+              await axios.post(`${import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1'}/feedback`, {
                 requestId: "11111111-2222-3333-4444-555555555555",
                 rating: rating,
                 comment: comment
