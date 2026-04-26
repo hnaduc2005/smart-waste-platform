@@ -55,8 +55,8 @@ export const CollectorTasksView = () => {
       }
     }
 
-    // TODO: call real status-update API when backend adds the endpoint
-    // await collectionApi.updateTaskStatus(taskId, newStatus);
+    // Call real status-update API to sync across services
+    await collectionApi.updateTaskStatus(taskId, newStatus);
   };
 
   useEffect(() => {

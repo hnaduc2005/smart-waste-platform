@@ -153,6 +153,23 @@ public class CollectionService {
     }
 
     @Transactional
+    public TaskAssignment updateTaskStatus(UUID taskId, RequestStatus newStatus) {
+        TaskAssignment task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("TaskAssignment not found"));
+        
+        task.setStatus(newStatus);
+        
+        // Cập nhật luôn trạng thái của WasteRequest để đồng bộ UI cho Citizen và Enterprise
+        WasteRequest request = task.getRequest();
+        if (request != null) {
+            request.setStatus(newStatus);
+            requestRepository.save(request);
+        }
+        
+        return taskRepository.save(task);
+    }
+
+    @Transactional
     public CollectionProof confirmCollection(UUID taskId, ConfirmCollectionDto dto) {
         TaskAssignment task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("TaskAssignment not found"));

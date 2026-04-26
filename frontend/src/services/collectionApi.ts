@@ -35,7 +35,10 @@ export const collectionApi = {
     api.post('/tasks/assign', data).then(res => res.data),
     
   getCollectorTasks: (collectorId: string) => 
-    api.get(`/tasks/collector/${collectorId}`).then(res => res.data),
+    api.get(`/tasks/collector/${collectorId}`).then(r => r.data),
+    
+  updateTaskStatus: (taskId: string, status: string) =>
+    api.patch(`/tasks/${taskId}/status?status=${status}`).then(r => r.data),
     
   confirmCollection: (taskId: string, data: { photoUrl: string; weight: number }) => 
     api.post(`/tasks/${taskId}/confirm`, data).then(res => res.data),

@@ -65,6 +65,14 @@ public class CollectionController {
         return ResponseEntity.ok(collectionService.getCollectorTasks(collectorId));
     }
 
+    @PatchMapping("/tasks/{taskId}/status")
+    public ResponseEntity<TaskAssignment> updateTaskStatus(
+            @PathVariable UUID taskId,
+            @RequestParam String status) {
+        com.ecocycle.collection.domain.enums.RequestStatus newStatus = com.ecocycle.collection.domain.enums.RequestStatus.valueOf(status);
+        return ResponseEntity.ok(collectionService.updateTaskStatus(taskId, newStatus));
+    }
+
     @PostMapping("/tasks/{taskId}/confirm")
     public ResponseEntity<CollectionProof> confirmCollection(
             @PathVariable UUID taskId,
