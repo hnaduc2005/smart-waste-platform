@@ -12,7 +12,7 @@ import java.security.Key;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${jwt.secret:ecocycle_jwt_secret_key_must_be_at_least_256_bits_long_for_hs256}")
     private String secretKey;
 
     public void validateToken(final String token) {
@@ -24,7 +24,7 @@ public class JwtUtil {
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        byte[] keyBytes = secretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

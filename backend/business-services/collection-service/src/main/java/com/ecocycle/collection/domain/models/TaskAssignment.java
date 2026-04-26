@@ -20,6 +20,7 @@ public class TaskAssignment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private WasteRequest request;
 
     @Column(name = "collector_id", nullable = false)

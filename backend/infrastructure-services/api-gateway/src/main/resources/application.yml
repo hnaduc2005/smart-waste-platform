@@ -6,6 +6,8 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
       discovery:
         locator:
           enabled: true
@@ -124,3 +126,7 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
+
+jwt:
+  secret: ecocycle_jwt_secret_key_must_be_at_least_256_bits_long_for_hs256

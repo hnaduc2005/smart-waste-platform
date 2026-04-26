@@ -9,6 +9,7 @@ import { RewardView } from '../components/RewardView';
 import { CitizenReportView } from '../components/CitizenReportView';
 import { NotificationView } from '../components/NotificationView';
 import { UserProfileView } from '../components/UserProfileView';
+import { notificationApi } from '../services/notificationApi';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -23,11 +24,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true, roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
-  { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests', roles: ['CITIZEN', 'ENTERPRISE'] },
+  { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests', roles: ['CITIZEN'] },
   { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks', roles: ['COLLECTOR', 'ENTERPRISE'] },
-  { icon: '🏆', label: 'Điểm thưởng', id: 'rewards', roles: ['CITIZEN', 'COLLECTOR'] },
+  { icon: '🏆', label: 'Điểm thưởng', id: 'rewards', roles: ['CITIZEN'] },
   { icon: '📊', label: 'Báo cáo', id: 'reports', roles: ['CITIZEN', 'ENTERPRISE'] },
-  { icon: '🗺️', label: 'Bản đồ', id: 'map', roles: ['COLLECTOR', 'ENTERPRISE'] },
+  { icon: '🗺️', label: 'Bản đồ', id: 'map', roles: ['ENTERPRISE'] },
   { icon: '🔔', label: 'Thông báo', id: 'notifications', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
   { icon: '⚙️', label: 'Cài đặt', id: 'settings', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
 ];
@@ -99,21 +100,18 @@ export default function DashboardPage() {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   useEffect(() => {
-    const updateUnreadCount = () => {
-      const saved = localStorage.getItem('eco_notifications');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setUnreadNotificationCount(parsed.filter((n: any) => !n.isRead).length);
-        } catch(e) {}
-      } else {
-        setUnreadNotificationCount(3); // Default mock unread count
-      }
+    let interval: any;
+    const updateUnreadCount = async () => {
+      if (!user?.userId) return;
+      try {
+        const data = await notificationApi.getMine();
+        setUnreadNotificationCount(data.filter((n: any) => !n.isRead).length);
+      } catch(e) {}
     };
     updateUnreadCount();
-    window.addEventListener('notifications_updated', updateUnreadCount);
-    return () => window.removeEventListener('notifications_updated', updateUnreadCount);
-  }, []);
+    interval = setInterval(updateUnreadCount, 3000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     if (user?.userId) {
@@ -232,10 +230,10 @@ export default function DashboardPage() {
       {/* ── Main content ── */}
       <main style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
 
-        {activeNav === 'requests' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenRequestView />}
-        {activeNav === 'map' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <MapDispatcher />}
+        {activeNav === 'requests' && ['CITIZEN'].includes(user?.role || '') && <CitizenRequestView />}
+        {activeNav === 'map' && ['ENTERPRISE'].includes(user?.role || '') && <MapDispatcher />}
         {activeNav === 'tasks' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <CollectorTasksView />}
-        {activeNav === 'rewards' && ['CITIZEN', 'COLLECTOR'].includes(user?.role || '') && <RewardView />}
+        {activeNav === 'rewards' && ['CITIZEN'].includes(user?.role || '') && <RewardView />}
         {activeNav === 'reports' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenReportView />}
         {activeNav === 'notifications' && <NotificationView />}
         {activeNav === 'settings' && <UserProfileView />}
@@ -276,10 +274,10 @@ export default function DashboardPage() {
         <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
           {[
-            { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests'), roles: ['CITIZEN', 'ENTERPRISE'] },
+            { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests'), roles: ['CITIZEN'] },
             { icon: '🚚', label: 'Nhiệm vụ thu gom', action: () => setActiveNav('tasks'), roles: ['COLLECTOR'] },
             { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier'), roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
-            { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map'), roles: ['COLLECTOR', 'ENTERPRISE'] },
+            { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map'), roles: ['ENTERPRISE'] },
             { icon: '🏅', label: 'Đổi điểm thưởng', action: () => setActiveNav('rewards'), roles: ['CITIZEN'] },
           ].filter(a => !a.roles || !user?.role || a.roles.includes(user.role)).map(a => (
             <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
