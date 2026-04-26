@@ -96,6 +96,8 @@ public class UserService {
             if (updates.containsKey("fullName")) cp.setFullName((String) updates.get("fullName"));
             if (updates.containsKey("vehiclePlate")) cp.setVehiclePlate((String) updates.get("vehiclePlate"));
             if (updates.containsKey("isOnline")) cp.setIsOnline((Boolean) updates.get("isOnline"));
+            if (updates.containsKey("latitude")) cp.setLatitude(((Number) updates.get("latitude")).doubleValue());
+            if (updates.containsKey("longitude")) cp.setLongitude(((Number) updates.get("longitude")).doubleValue());
         } else if (profile instanceof EnterpriseProfile) {
             EnterpriseProfile ep = (EnterpriseProfile) profile;
             if (updates.containsKey("companyName")) ep.setCompanyName((String) updates.get("companyName"));

@@ -49,6 +49,11 @@ export const MapDispatcher = () => {
   const [collectors, setCollectors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignMsg, setAssignMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Default center: Ho Chi Minh City
+  const DEFAULT_LAT = 10.823;
+  const DEFAULT_LNG = 106.629;
 
   const fetchCollectors = async () => {
     try {
@@ -56,12 +61,17 @@ export const MapDispatcher = () => {
       const mapped = data.map((c: any, index: number) => ({
         id: c.id,
         name: c.fullName || 'Tài xế',
-        status: c.isOnline ? 'Sẵn sàng' : 'Không hoạt động',
-        coords: [10.824 + index * 0.005, 106.63 + index * 0.005]
+        vehiclePlate: c.vehiclePlate || '',
+        // isOnline=null or true → Sẵn sàng; false → Không hoạt động
+        status: c.isOnline === false ? 'Không hoạt động' : 'Sẵn sàng',
+        // Use real GPS if available, otherwise spread around city center
+        coords: (c.latitude && c.longitude)
+          ? [c.latitude, c.longitude]
+          : [DEFAULT_LAT + (index % 3) * 0.008, DEFAULT_LNG + Math.floor(index / 3) * 0.008]
       }));
       setCollectors(mapped);
     } catch (e) {
-      console.error(e);
+      console.error('Lỗi tải danh sách collector:', e);
       setCollectors([]);
     }
   };
@@ -72,7 +82,7 @@ export const MapDispatcher = () => {
       const data = await collectionApi.getPendingRequests();
       setRequests(data);
     } catch (e) {
-      console.error(e);
+      console.error('Lỗi tải đơn pending:', e);
       setRequests([]);
     } finally {
       setLoading(false);
@@ -82,76 +92,52 @@ export const MapDispatcher = () => {
   useEffect(() => {
     fetchPending();
     fetchCollectors();
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(() => {
+      fetchPending();
+      fetchCollectors();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAssign = async (reqId: string, collectorId: string) => {
+    if (!collectorId) return;
     const targetReq = requests.find(r => r.id === reqId);
-    const citizenId = targetReq ? targetReq.citizenId : '5548a421-134b-497d-843a-5dba9f4f78fa';
-    
+    const citizenId = targetReq?.citizenId;
+
     try {
       setAssigningId(reqId);
-      // Gọi API thực tế
-      try {
-        await collectionApi.assignTask({ requestId: reqId, collectorId: collectorId });
-      } catch (backendErr) {
-        console.warn('Backend API failed, falling back to local storage', backendErr);
-      }
-      alert('Đã gán cuốc rác thành công!');
-      fetchPending(); // Tải lại danh sách
+      setAssignMsg(null);
 
-      // Create notification via API
-      try {
-        await notificationApi.create({
+      await collectionApi.assignTask({ requestId: reqId, collectorId });
+
+      setAssignMsg({ type: 'success', text: '✅ Đã gán nhiệm vụ thành công!' });
+      setTimeout(() => setAssignMsg(null), 3000);
+      fetchPending();
+
+      // Gửi thông báo cho cả hai bên
+      if (citizenId) {
+        notificationApi.create({
           userId: citizenId,
-          title: 'Rác của bạn chuẩn bị được thu gom! 🚛',
-          message: `Đơn thu gom (ID: ${reqId.substring(0,8)}) đã được giao cho tài xế. Vui lòng chuẩn bị rác nhé!`,
+          title: 'Rác của bạn sắp được thu gom! 🚛',
+          message: `Đơn (ID: ${reqId.substring(0,8)}) đã được giao cho tài xế.`,
           type: 'COLLECTION',
           isRead: false
-        });
-        await notificationApi.create({
-          userId: collectorId,
-          title: 'Bạn có nhiệm vụ thu gom mới! 🚛',
-          message: `Doanh nghiệp vừa phân công cho bạn đơn thu gom (ID: ${reqId.substring(0,8)}). Hãy kiểm tra tuyến thu gom!`,
-          type: 'SYSTEM',
-          isRead: false
-        });
-      } catch(err) {
-        console.warn('Failed to create notifications via API, saving to local storage', err);
-        const savedNotis = localStorage.getItem('eco_notifications');
-        const notis = savedNotis ? JSON.parse(savedNotis) : [];
-        notis.push({
-          id: 'noti-' + Date.now(),
-          title: 'Rác của bạn chuẩn bị được thu gom! 🚛',
-          message: `Đơn thu gom (ID: ${reqId.substring(0,8)}) đã được giao cho tài xế. Vui lòng chuẩn bị rác nhé!`,
-          type: 'COLLECTION',
-          createdAt: new Date().toISOString(),
-          isRead: false
-        });
-        notis.push({
-          id: 'noti-' + (Date.now() + 1),
-          title: 'Bạn có nhiệm vụ thu gom mới! 🚛',
-          message: `Doanh nghiệp vừa phân công cho bạn đơn thu gom (ID: ${reqId.substring(0,8)}). Hãy kiểm tra tuyến thu gom!`,
-          type: 'SYSTEM',
-          createdAt: new Date().toISOString(),
-          isRead: false
-        });
-        localStorage.setItem('eco_notifications', JSON.stringify(notis));
+        }).catch(console.warn);
       }
+      notificationApi.create({
+        userId: collectorId,
+        title: 'Bạn có nhiệm vụ thu gom mới! 🚛',
+        message: `Đơn thu gom (ID: ${reqId.substring(0,8)}) vừa được phân công cho bạn.`,
+        type: 'SYSTEM',
+        isRead: false
+      }).catch(console.warn);
 
-      if (targetReq) {
-        const tasksSaved = localStorage.getItem('eco_assigned_tasks');
-        const eco_tasks = tasksSaved ? JSON.parse(tasksSaved) : [];
-        eco_tasks.push({ 
-          id: 'task-' + Date.now(), 
-          status: 'ASSIGNED', 
-          collectorId: collectorId,
-          request: targetReq 
-        });
-        localStorage.setItem('eco_assigned_tasks', JSON.stringify(eco_tasks));
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Gán cuốc rác thất bại!');
+    } catch (e: any) {
+      console.error('Lỗi gán nhiệm vụ:', e);
+      const msg = e?.response?.data?.message || e?.message || 'Gán thất bại';
+      setAssignMsg({ type: 'error', text: `❌ ${msg}` });
+      setTimeout(() => setAssignMsg(null), 5000);
     } finally {
       setAssigningId(null);
     }
@@ -175,9 +161,15 @@ export const MapDispatcher = () => {
 
       {/* Map Section */}
       <div style={{ flex: 1, position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)' }}>
-        {loading && (
-          <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: 'var(--green-500)', color: 'white', padding: '8px 16px', borderRadius: 20, fontWeight: 600 }}>
-            Đang tải dữ liệu...
+      {/* Assign status toast */}
+        {assignMsg && (
+          <div style={{
+            position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 1000,
+            background: assignMsg.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)',
+            color: 'white', padding: '10px 20px', borderRadius: 20, fontWeight: 600, fontSize: 14,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)', whiteSpace: 'nowrap'
+          }}>
+            {assignMsg.text}
           </div>
         )}
 
@@ -192,10 +184,12 @@ export const MapDispatcher = () => {
             <Marker key={col.id} position={col.coords as any} icon={greenIcon}>
               <Popup>
                 <div style={{ padding: 4 }}>
-                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Tài xế: {col.name}</div>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>🚛 {col.name}</div>
+                  {col.vehiclePlate && <div style={{ fontSize: 12, color: '#555', marginBottom: 2 }}>🚗 {col.vehiclePlate}</div>}
                   <div style={{ color: col.status === 'Sẵn sàng' ? '#10b981' : '#f59e0b', fontSize: 13, fontWeight: 600 }}>
                     {col.status}
                   </div>
+                </div>
                 </div>
               </Popup>
             </Marker>

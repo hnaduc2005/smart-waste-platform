@@ -39,6 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     updateAllUsersCache(res);
     setUser({ userId: res.userId, username: res.username, role: res.role });
+
+    // If collector: mark as online in user-service
+    if (res.role === 'COLLECTOR') {
+      import('../services/userApi').then(({ userApi }) => {
+        userApi.updateProfile(res.userId, { isOnline: true }).catch(() => {});
+      });
+    }
+
     return res;
   }, []);
 
@@ -53,10 +61,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // If collector: mark as offline before clearing tokens
+    if (user?.role === 'COLLECTOR') {
+      try {
+        const { userApi } = await import('../services/userApi');
+        await userApi.updateProfile(user.userId, { isOnline: false });
+      } catch { /* ignore */ }
+    }
     try { await authApi.logout(); } catch { /* ignore */ }
     tokenStore.clear();
     setUser(null);
-  }, []);
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, isLoggedIn: !!user }}>

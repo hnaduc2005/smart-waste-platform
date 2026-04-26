@@ -30,4 +30,10 @@ public class CollectorProfile extends UserProfileBase {
 
     @Column(name = "is_online")
     private Boolean isOnline;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 }
