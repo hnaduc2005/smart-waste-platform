@@ -21,6 +21,7 @@ export const CollectorTasksView = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success'|'error'; text: string } | null>(null);
   
   // State cho Modal xác nhận
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -29,33 +30,22 @@ export const CollectorTasksView = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchTasks = async () => {
-    const collectorId = user?.userId || 'col-1';
+    const collectorId = user?.userId;
+    if (!collectorId) { setLoading(false); return; }
     try {
       setLoading(true);
       const data = await collectionApi.getCollectorTasks(collectorId);
       setTasks(data);
     } catch (error) {
       console.error('Error fetching tasks', error);
-      // Fallback: Read from localStorage
-      const saved = localStorage.getItem('eco_assigned_tasks');
-      if (saved) {
-        const eco_tasks = JSON.parse(saved);
-        setTasks(eco_tasks.filter((t: any) => t.collectorId === collectorId));
-      } else {
-        setTasks([]);
-      }
+      setTasks([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateStatus = (taskId: string, newStatus: string) => {
-    const saved = localStorage.getItem('eco_assigned_tasks');
-    if (saved) {
-      const eco_tasks = JSON.parse(saved);
-      const updated = eco_tasks.map((t: any) => t.id === taskId ? { ...t, status: newStatus } : t);
-      localStorage.setItem('eco_assigned_tasks', JSON.stringify(updated));
-    }
+  const handleUpdateStatus = async (taskId: string, newStatus: string) => {
+    // Optimistic update UI immediately
     setTasks(ts => ts.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
     
     if (newStatus === 'ON_THE_WAY') {
@@ -64,16 +54,22 @@ export const CollectorTasksView = () => {
         window.open(`https://maps.google.com/?q=${targetTask.request.location}`, '_blank');
       }
     }
+
+    // TODO: call real status-update API when backend adds the endpoint
+    // await collectionApi.updateTaskStatus(taskId, newStatus);
   };
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+    const interval = setInterval(fetchTasks, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, [user?.userId]);
+
 
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTask || !weight) {
-      alert('Vui lòng nhập trọng lượng rác thu gom!');
+      setStatusMsg({ type: 'error', text: 'Vui lòng nhập trọng lượng rác thu gom!' });
       return;
     }
     try {
@@ -82,17 +78,17 @@ export const CollectorTasksView = () => {
         photoUrl: photoUrl || 'https://via.placeholder.com/400?text=Collected+Waste',
         weight: Number(weight)
       });
-      alert('Tuyệt vời! Đã ghi nhận hoàn thành cuốc rác.');
+      setStatusMsg({ type: 'success', text: '🎉 Đã ghi nhận hoàn thành cuốc rác!' });
+      setTimeout(() => setStatusMsg(null), 4000);
       setSelectedTask(null);
       setPhotoUrl('');
       setWeight('');
       fetchTasks();
-    } catch (e) {
-      console.error(e);
-      alert('Cập nhật thành công (Fallback)!');
-      // Mô phỏng local update
-      handleUpdateStatus(selectedTask.id, 'COLLECTED');
-      setSelectedTask(null);
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi không xác định';
+      setStatusMsg({ type: 'error', text: `❌ ${msg}` });
+      setTimeout(() => setStatusMsg(null), 5000);
     } finally {
       setSubmitting(false);
     }
@@ -104,6 +100,18 @@ export const CollectorTasksView = () => {
         <h2 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>Lịch trình thu gom 🚚</h2>
         <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0' }}>Danh sách các điểm thu gom được giao cho bạn hôm nay.</p>
       </div>
+
+      {/* Status toast */}
+      {statusMsg && (
+        <div style={{
+          padding: '12px 20px', borderRadius: 14, fontWeight: 600, fontSize: 14,
+          background: statusMsg.type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+          border: `1px solid ${statusMsg.type === 'success' ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+          color: statusMsg.type === 'success' ? '#34d399' : '#f87171',
+        }}>
+          {statusMsg.text}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Đang tải lộ trình...</div>

@@ -190,10 +190,10 @@ export const MapDispatcher = () => {
                     {col.status}
                   </div>
                 </div>
-                </div>
               </Popup>
             </Marker>
           ))}
+
 
           {/* Render Pending Requests (Red) */}
           {requests.map(req => {

@@ -148,7 +148,8 @@ public class CollectionService {
     }
 
     public List<TaskAssignment> getCollectorTasks(UUID collectorId) {
-        return taskRepository.findByCollectorIdAndStatus(collectorId, RequestStatus.ASSIGNED);
+        return taskRepository.findByCollectorIdAndStatusIn(collectorId,
+            java.util.List.of(RequestStatus.ASSIGNED, RequestStatus.ON_THE_WAY));
     }
 
     @Transactional

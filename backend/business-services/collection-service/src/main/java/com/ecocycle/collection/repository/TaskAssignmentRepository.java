@@ -11,4 +11,6 @@ import java.util.UUID;
 @Repository
 public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, UUID> {
     List<TaskAssignment> findByCollectorIdAndStatus(UUID collectorId, RequestStatus status);
+    List<TaskAssignment> findByCollectorIdAndStatusIn(UUID collectorId, List<RequestStatus> statuses);
+    List<TaskAssignment> findByCollectorId(UUID collectorId);
 }
