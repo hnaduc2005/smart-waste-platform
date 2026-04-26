@@ -4,8 +4,17 @@ import { useAuth } from '../context/AuthContext';
 
 const STATUS_MAP = {
   ASSIGNED: { label: 'Chờ thu gom', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+  ON_THE_WAY: { label: 'Đang đến', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
   COLLECTED: { label: 'Đã lấy rác', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
   COMPLETED: { label: 'Hoàn thành', color: '#059669', bg: 'rgba(5, 150, 105, 0.15)' },
+};
+
+const WASTE_TYPE_MAP: Record<string, string> = {
+  'RECYCLABLE': '♻️ Rác tái chế (Nhựa, Giấy, Kim loại)',
+  'ORGANIC': '🍎 Rác hữu cơ (Thức ăn thừa)',
+  'HAZARDOUS': '⚠️ Rác độc hại (Pin, Hóa chất)',
+  'BULKY': '🛋️ Rác cồng kềnh (Tủ, Bàn ghế)',
+  'ELECTRONIC': '💻 Rác điện tử (E-waste)',
 };
 
 export const CollectorTasksView = () => {
@@ -20,7 +29,6 @@ export const CollectorTasksView = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchTasks = async () => {
-    // Nếu API auth chưa trả collectorId thực, tạm dùng id demo của collector
     const collectorId = user?.userId || 'col-1';
     try {
       setLoading(true);
@@ -28,13 +36,33 @@ export const CollectorTasksView = () => {
       setTasks(data);
     } catch (error) {
       console.error('Error fetching tasks', error);
-      // Fallback mock nếu chưa link DB
-      setTasks([
-        { id: 'task-101', status: 'ASSIGNED', request: { id: 'req-001', type: 'RECYCLABLE', location: '10.823,106.629' } },
-        { id: 'task-102', status: 'ASSIGNED', request: { id: 'req-002', type: 'BULKY', location: '10.818,106.635' } },
-      ]);
+      // Fallback: Read from localStorage
+      const saved = localStorage.getItem('eco_assigned_tasks');
+      if (saved) {
+        const eco_tasks = JSON.parse(saved);
+        setTasks(eco_tasks.filter((t: any) => t.collectorId === collectorId));
+      } else {
+        setTasks([]);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = (taskId: string, newStatus: string) => {
+    const saved = localStorage.getItem('eco_assigned_tasks');
+    if (saved) {
+      const eco_tasks = JSON.parse(saved);
+      const updated = eco_tasks.map((t: any) => t.id === taskId ? { ...t, status: newStatus } : t);
+      localStorage.setItem('eco_assigned_tasks', JSON.stringify(updated));
+    }
+    setTasks(ts => ts.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    
+    if (newStatus === 'ON_THE_WAY') {
+      const targetTask = tasks.find(t => t.id === taskId);
+      if (targetTask?.request?.location) {
+        window.open(`https://maps.google.com/?q=${targetTask.request.location}`, '_blank');
+      }
     }
   };
 
@@ -63,7 +91,7 @@ export const CollectorTasksView = () => {
       console.error(e);
       alert('Cập nhật thành công (Fallback)!');
       // Mô phỏng local update
-      setTasks(ts => ts.map(t => t.id === selectedTask.id ? { ...t, status: 'COLLECTED' } : t));
+      handleUpdateStatus(selectedTask.id, 'COLLECTED');
       setSelectedTask(null);
     } finally {
       setSubmitting(false);
@@ -79,7 +107,7 @@ export const CollectorTasksView = () => {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Đang tải lộ trình...</div>
-      ) : tasks.filter(t => t.status === 'ASSIGNED').length === 0 ? (
+      ) : tasks.filter(t => t.status === 'ASSIGNED' || t.status === 'ON_THE_WAY').length === 0 ? (
         <div style={{ background: 'var(--bg-card)', borderRadius: 20, border: '1px solid var(--border)', textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
           <div style={{ fontSize: 60, marginBottom: 16 }}>🎉</div>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Bạn đã hoàn thành mọi lộ trình được giao!</p>
@@ -87,36 +115,51 @@ export const CollectorTasksView = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 16 }}>
-          {tasks.filter(t => t.status === 'ASSIGNED').map(task => (
+          {tasks.filter(t => t.status === 'ASSIGNED' || t.status === 'ON_THE_WAY').map(task => (
             <div key={task.id} style={{
-              background: 'var(--bg-card)', border: '1px solid rgba(16, 185, 129, 0.2)',
+              background: 'var(--bg-card)', border: `1px solid ${STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color || '#10b981'}22`,
               borderRadius: 16, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>Mã đơn: {task.request?.id?.substring(0,8) || task.id.substring(0,8)}</span>
-                  <span style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
-                    CHỜ THU GOM
+                  <span style={{ fontSize: 16, fontWeight: 800, color: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color || '#10b981' }}>Mã đơn: {task.request?.id?.substring(0,8) || task.id.substring(0,8)}</span>
+                  <span style={{ background: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.bg, color: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color, padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
+                    {STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.label.toUpperCase()}
                   </span>
                 </div>
                 <div style={{ fontSize: 15, marginBottom: 6 }}>
-                  🗑️ Phân loại: <b>{task.request?.type || 'Không xác định'}</b>
+                  <b>Phân loại:</b> {WASTE_TYPE_MAP[task.request?.type] || task.request?.type || 'Không xác định'}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
                   📍 Tọa độ GPS: <a href={`https://maps.google.com/?q=${task.request?.location}`} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>{task.request?.location}</a>
                 </div>
               </div>
 
-              <button 
-                onClick={() => setSelectedTask(task)}
-                style={{
-                  background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none',
-                  padding: '12px 24px', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap'
-                }}>
-                ✅ Chốt Đơn
-              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                {task.status === 'ASSIGNED' && (
+                  <button 
+                    onClick={() => handleUpdateStatus(task.id, 'ON_THE_WAY')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none',
+                      padding: '12px 24px', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                    }}>
+                    🚚 Đang đến
+                  </button>
+                )}
+                {task.status === 'ON_THE_WAY' && (
+                  <button 
+                    onClick={() => setSelectedTask(task)}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none',
+                      padding: '12px 24px', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                    }}>
+                    ✅ Đã thu gom
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -126,59 +169,76 @@ export const CollectorTasksView = () => {
       {selectedTask && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{
-            background: 'var(--bg-card)', padding: 32, borderRadius: 24, width: '100%', maxWidth: 460,
-            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-            animation: 'fadeInDown 0.3s ease-out'
+            background: 'linear-gradient(180deg, var(--bg-card) 0%, #0f172a 100%)', 
+            padding: 40, borderRadius: 28, width: '100%', maxWidth: 480,
+            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+            animation: 'fadeInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
-            <h3 style={{ margin: '0 0 24px', fontSize: 22 }}>Xác nhận thu gom điểm {selectedTask.request?.id?.substring(0,8) || selectedTask.id.substring(0,8)}</h3>
+            <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ width: 64, height: 64, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 16px' }}>📸</div>
+              <h3 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>Nghiệm thu thu gom</h3>
+              <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0', fontSize: 15 }}>Đơn hàng: {selectedTask.request?.id?.substring(0,8) || selectedTask.id.substring(0,8)}</p>
+            </div>
             
-            <form onSubmit={handleConfirm} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <form onSubmit={handleConfirm} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                  📸 Bật Camera quét rác / Tải ảnh
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: 20, borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
+                  1. Chụp ảnh hiện trường (đã sạch sẽ) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{
-                  border: '2px dashed var(--border)', borderRadius: 16, height: 120,
+                  border: '2px dashed rgba(16, 185, 129, 0.4)', borderRadius: 16, height: 140,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--bg-input)', cursor: 'pointer', color: 'var(--text-muted)'
+                  background: photoUrl ? 'rgba(16, 185, 129, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', color: photoUrl ? '#10b981' : 'var(--text-muted)',
+                  transition: 'all 0.2s', overflow: 'hidden'
                 }} onClick={() => {
-                  // Giả lập tính năng mở camera bằng cách prompt URI
-                  const uri = prompt('Mô phỏng chụp camera: Nhập URL ảnh bằng tay', 'https://example.com/rac-cua-toi.jpg');
+                  const uri = prompt('Mô phỏng chụp camera: Nhập URL ảnh bằng tay', 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=400&auto=format&fit=crop');
                   if (uri) setPhotoUrl(uri);
                 }}>
-                  <span style={{ fontSize: 32, marginBottom: 8 }}>📷</span>
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>{photoUrl ? 'Đã đính kèm 1 ảnh' : 'Chạm để chụp hình tại đây'}</span>
+                  {photoUrl ? (
+                     <div style={{ width: '100%', height: '100%', backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 36, marginBottom: 8 }}>📷</span>
+                      <span style={{ fontSize: 14, fontWeight: 500 }}>Chạm để mở Camera</span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                  ⚖️ Khối lượng thực tế thu được (kg) <span style={{ color: '#ef4444' }}>*</span>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: 20, borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
+                  2. Khối lượng thực tế thu được (kg) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <input 
-                  type="number" step="0.1" required 
-                  value={weight} onChange={e => setWeight(parseFloat(e.target.value))}
-                  placeholder="Ví dụ: 3.5"
-                  style={{
-                    width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', boxSizing: 'border-box',
-                    padding: '14px 16px', borderRadius: 12, color: 'var(--green-400)', fontSize: 24, fontWeight: 800, textAlign: 'center'
-                  }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '4px 16px' }}>
+                  <input 
+                    type="number" step="0.1" required 
+                    value={weight} onChange={e => setWeight(parseFloat(e.target.value))}
+                    placeholder="0.0"
+                    style={{
+                      flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                      color: 'var(--green-400)', fontSize: 32, fontWeight: 800, padding: '12px 0'
+                    }}
+                  />
+                  <span style={{ fontSize: 20, color: 'var(--text-muted)', fontWeight: 600 }}>kg</span>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                <button type="button" onClick={() => setSelectedTask(null)}
-                  style={{ flex: 1, padding: '14px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                <button type="button" onClick={() => { setSelectedTask(null); setPhotoUrl(''); setWeight(''); }}
+                  style={{ flex: 1, padding: '16px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-secondary)', borderRadius: 16, fontSize: 15, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                >
                   Hủy bỏ
                 </button>
-                <button type="submit" disabled={submitting}
-                  style={{ flex: 2, padding: '14px', background: 'var(--green-500)', border: 'none', color: 'white', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer' }}>
-                  {submitting ? 'Đang gửi...' : 'Hoàn Tất & Nhận Điểm'}
+                <button type="submit" disabled={submitting || !photoUrl}
+                  style={{ flex: 2, padding: '16px', background: (!submitting && photoUrl) ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.1)', border: 'none', color: (!submitting && photoUrl) ? 'white' : 'rgba(255,255,255,0.3)', borderRadius: 16, fontSize: 15, fontWeight: 700, cursor: (!submitting && photoUrl) ? 'pointer' : 'not-allowed', boxShadow: (!submitting && photoUrl) ? '0 8px 24px rgba(16, 185, 129, 0.4)' : 'none', transition: 'all 0.2s' }}>
+                  {submitting ? 'Đang gửi...' : 'Hoàn Tất Thu Gom'}
                 </button>
               </div>
 

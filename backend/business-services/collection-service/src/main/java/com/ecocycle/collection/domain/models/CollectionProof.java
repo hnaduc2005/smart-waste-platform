@@ -19,6 +19,7 @@ public class CollectionProof {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private TaskAssignment task;
 
     @Column(name = "photo_url", nullable = false)

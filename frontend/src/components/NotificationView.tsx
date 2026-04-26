@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, Trophy, Truck, AlertTriangle, CheckCircle, Trash2, Settings, MailOpen, Mail } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { notificationApi } from '../services/notificationApi';
 
 type NotificationType = 'REWARD' | 'COLLECTION' | 'SYSTEM' | 'ALERT';
 
@@ -48,32 +50,44 @@ const mockNotifications: Notification[] = [
 ];
 
 export const NotificationView = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem('eco_notifications');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return mockNotifications;
-  });
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('eco_notifications', JSON.stringify(notifications));
-    window.dispatchEvent(new Event('notifications_updated'));
-  }, [notifications]);
+    let interval: any;
+    const fetchNotis = async () => {
+      try {
+        const data = await notificationApi.getMine();
+        setNotifications(data);
+      } catch(e) {
+        // Fallback
+        const savedNotis = localStorage.getItem('eco_notifications');
+        const localNotis = savedNotis ? JSON.parse(savedNotis) : [];
+        setNotifications([...mockNotifications, ...localNotis]);
+      }
+    };
+    fetchNotis();
+    interval = setInterval(fetchNotis, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const displayNotis = notifications;
+  const unreadCount = displayNotis.filter(n => !n.isRead).length;
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    await notificationApi.markAsRead(id);
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    await notificationApi.markAllAsRead();
   };
 
-  const deleteNotification = (id: string, e: React.MouseEvent) => {
+  const deleteNotification = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setNotifications(prev => prev.filter(n => n.id !== id));
+    await notificationApi.delete(id);
   };
 
   const getIcon = (type: NotificationType) => {
@@ -169,7 +183,7 @@ export const NotificationView = () => {
             <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>Bạn đã xem hết tất cả thông báo.</p>
           </div>
         ) : (
-          notifications.map(noti => (
+          displayNotis.map(noti => (
             <div 
               key={noti.id} 
               onClick={() => markAsRead(noti.id)}

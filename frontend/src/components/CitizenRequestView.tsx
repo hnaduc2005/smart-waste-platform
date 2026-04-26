@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collectionApi } from '../services/collectionApi';
 import { useAuth } from '../context/AuthContext';
+import { notificationApi } from '../services/notificationApi';
 
 const STATUS_MAP = {
   PENDING: { label: 'Chờ xử lý', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
@@ -17,6 +18,25 @@ const WASTE_TYPES = [
   { value: 'BULKY', label: 'Rác cồng kềnh (Tủ, Bàn ghế)', icon: '🛋️' },
   { value: 'ELECTRONIC', label: 'Rác điện tử (E-waste)', icon: '💻' },
 ];
+
+const formatDate = (dateInput: any) => {
+  if (!dateInput) return new Date().toLocaleString('vi-VN');
+  
+  if (Array.isArray(dateInput)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+    // Backend trả về mảng số theo giờ UTC, cần dùng Date.UTC để trình duyệt tự cộng thêm 7 tiếng (múi giờ VN)
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, second)).toLocaleString('vi-VN');
+  }
+
+  let dateString = String(dateInput);
+  // Nếu là chuỗi ISO thiếu timezone (VD: "2026-04-26T01:00:00"), ép thành UTC bằng cách thêm 'Z'
+  if (dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+')) {
+    dateString += 'Z';
+  }
+  
+  const dateObj = new Date(dateString);
+  return isNaN(dateObj.getTime()) ? new Date().toLocaleString('vi-VN') : dateObj.toLocaleString('vi-VN');
+};
 
 export const CitizenRequestView = () => {
   const { user } = useAuth();
@@ -39,7 +59,13 @@ export const CitizenRequestView = () => {
       const data = await collectionApi.getCitizenRequests(user.userId);
       setRequests(data);
     } catch (error) {
-      console.error('Error fetching requests', error);
+      console.warn('Backend API failed, falling back to local storage', error);
+      const saved = localStorage.getItem('eco_citizen_requests');
+      if (saved) {
+        setRequests(JSON.parse(saved).filter((r: any) => r.citizenId === user.userId));
+      } else {
+        setRequests([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -78,10 +104,8 @@ export const CitizenRequestView = () => {
     try {
       setSubmitting(true);
       if (imageFile) {
-        // Upload file cho AI nhận diện và tạo request
         await collectionApi.createRequestWithImage(user.userId, location, imageFile);
       } else {
-        // Tạo request bình thường (không AI)
         await collectionApi.createRequest({
           citizenId: user.userId,
           type,
@@ -89,17 +113,41 @@ export const CitizenRequestView = () => {
           imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image'
         });
       }
+      alert('Tạo yêu cầu thành công!');
+    } catch (error) {
+      console.warn('Backend failed, saving request to local storage', error);
+      const saved = localStorage.getItem('eco_citizen_requests');
+      const reqs = saved ? JSON.parse(saved) : [];
+      reqs.push({
+        id: 'req-' + Date.now(),
+        citizenId: user.userId,
+        type,
+        location,
+        imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image',
+        status: 'PENDING',
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('eco_citizen_requests', JSON.stringify(reqs));
+      alert('Tạo yêu cầu (Ngoại tuyến) thành công!');
+    } finally {
       setShowForm(false);
       setLocation('');
       setImageUrl('');
       setImageFile(null);
       setType('RECYCLABLE');
       fetchRequests(); // reload list
-      alert('Tạo yêu cầu thành công!');
-    } catch (error) {
-      alert('Tạo yêu cầu thất bại. Vui lòng thử lại.');
-      console.error(error);
-    } finally {
+      
+      // Khởi tạo thông báo cho Doanh nghiệp
+      try {
+        await notificationApi.create({
+          targetRole: 'ENTERPRISE',
+          title: '🚨 Yêu cầu thu gom rác mới!',
+          message: `Một người dân vừa gửi yêu cầu dọn rác tại tọa độ: ${location.substring(0, 20)}... Hãy mở Bản đồ để điều phối ngay!`,
+          type: 'SYSTEM',
+          isRead: false
+        });
+      } catch(err) {}
+      
       setSubmitting(false);
     }
   };
@@ -271,7 +319,7 @@ export const CitizenRequestView = () => {
                         </span>
                       </td>
                       <td style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)' }}>
-                        {new Date(r.createdAt || Date.now()).toLocaleString('vi-VN')}
+                        {formatDate(r.createdAt)}
                       </td>
                     </tr>
                   )
