@@ -74,7 +74,9 @@ export const NotificationView = () => {
   };
 
   const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
+    // Đảm bảo UTC nếu backend trả về thiếu 'Z'
+    const utcString = isoString.endsWith('Z') ? isoString : `${isoString}Z`;
+    const date = new Date(utcString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.round(diffMs / 60000);
