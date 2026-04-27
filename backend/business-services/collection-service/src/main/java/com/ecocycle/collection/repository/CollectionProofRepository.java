@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface CollectionProofRepository extends JpaRepository<CollectionProof, UUID> {
+    java.util.Optional<CollectionProof> findByTask(com.ecocycle.collection.domain.models.TaskAssignment task);
 }

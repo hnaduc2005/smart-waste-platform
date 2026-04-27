@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { CitizenRequestView } from '../components/CitizenRequestView';
 import { MapDispatcher } from '../components/MapDispatcher';
 import { CollectorTasksView } from '../components/CollectorTasksView';
+import { CollectorHistoryView } from '../components/CollectorHistoryView';
 import { rewardApi } from '../services/rewardApi';
 import { RewardView } from '../components/RewardView';
 import { CitizenReportView } from '../components/CitizenReportView';
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true, roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
   { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests', roles: ['CITIZEN'] },
   { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks', roles: ['COLLECTOR', 'ENTERPRISE'] },
+  { icon: '📋', label: 'Lịch sử thu gom', id: 'history', roles: ['COLLECTOR'] },
   { icon: '🏆', label: 'Điểm thưởng', id: 'rewards', roles: ['CITIZEN'] },
   { icon: '📊', label: 'Báo cáo', id: 'reports', roles: ['CITIZEN', 'ENTERPRISE'] },
   { icon: '🗺️', label: 'Bản đồ', id: 'map', roles: ['ENTERPRISE'] },
@@ -233,6 +235,7 @@ export default function DashboardPage() {
         {activeNav === 'requests' && ['CITIZEN'].includes(user?.role || '') && <CitizenRequestView />}
         {activeNav === 'map' && ['ENTERPRISE'].includes(user?.role || '') && <MapDispatcher />}
         {activeNav === 'tasks' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <CollectorTasksView />}
+        {activeNav === 'history' && user?.role === 'COLLECTOR' && <CollectorHistoryView />}
         {activeNav === 'rewards' && ['CITIZEN'].includes(user?.role || '') && <RewardView />}
         {activeNav === 'reports' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenReportView />}
         {activeNav === 'notifications' && <NotificationView onNavigateToTasks={() => setActiveNav('tasks')} />}

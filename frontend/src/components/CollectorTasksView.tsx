@@ -4,17 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import { notificationApi } from '../services/notificationApi';
 
 const STATUS_MAP = {
-  ASSIGNED: { label: 'Chờ thu gom', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-  ON_THE_WAY: { label: 'Đang đến', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
-  COLLECTED: { label: 'Đã lấy rác', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-  COMPLETED: { label: 'Hoàn thành', color: '#059669', bg: 'rgba(5, 150, 105, 0.15)' },
+  ASSIGNED:   { label: 'Chờ thu gom', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+  ON_THE_WAY: { label: 'Đang đến',    color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
 };
 
 const WASTE_TYPE_MAP: Record<string, string> = {
   'RECYCLABLE': '♻️ Rác tái chế (Nhựa, Giấy, Kim loại)',
-  'ORGANIC': '🍎 Rác hữu cơ (Thức ăn thừa)',
-  'HAZARDOUS': '⚠️ Rác độc hại (Pin, Hóa chất)',
-  'BULKY': '🛋️ Rác cồng kềnh (Tủ, Bàn ghế)',
+  'ORGANIC':    '🍎 Rác hữu cơ (Thức ăn thừa)',
+  'HAZARDOUS':  '⚠️ Rác độc hại (Pin, Hóa chất)',
+  'BULKY':      '🛋️ Rác cồng kềnh (Tủ, Bàn ghế)',
   'ELECTRONIC': '💻 Rác điện tử (E-waste)',
 };
 
@@ -87,7 +85,6 @@ export const CollectorTasksView = () => {
     return () => clearInterval(interval);
   }, [user?.userId]);
 
-
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTask || !weight) {
@@ -158,7 +155,7 @@ export const CollectorTasksView = () => {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>Đang tải lộ trình...</div>
-      ) : tasks.filter(t => t.status === 'ASSIGNED' || t.status === 'ON_THE_WAY').length === 0 ? (
+      ) : tasks.length === 0 ? (
         <div style={{ background: 'var(--bg-card)', borderRadius: 20, border: '1px solid var(--border)', textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
           <div style={{ fontSize: 60, marginBottom: 16 }}>🎉</div>
           <p style={{ fontSize: 18, fontWeight: 600 }}>Bạn đã hoàn thành mọi lộ trình được giao!</p>
@@ -166,15 +163,17 @@ export const CollectorTasksView = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 16 }}>
-          {tasks.filter(t => t.status === 'ASSIGNED' || t.status === 'ON_THE_WAY').map(task => (
+          {tasks.map(task => (
             <div key={task.id} style={{
-              background: 'var(--bg-card)', border: `1px solid ${STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color || '#10b981'}22`,
+              background: 'var(--bg-card)', border: `1px solid ${STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color || '#3b82f6'}22`,
               borderRadius: 16, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
             }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color || '#10b981' }}>Mã đơn: {task.request?.id?.substring(0,8) || task.id.substring(0,8)}</span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color || '#3b82f6' }}>
+                    Mã đơn: {task.request?.id?.substring(0,8) || task.id.substring(0,8)}
+                  </span>
                   <span style={{ background: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.bg, color: STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.color, padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
                     {STATUS_MAP[task.status as keyof typeof STATUS_MAP]?.label.toUpperCase()}
                   </span>
@@ -183,7 +182,10 @@ export const CollectorTasksView = () => {
                   <b>Phân loại:</b> {WASTE_TYPE_MAP[task.request?.type] || task.request?.type || 'Không xác định'}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-                  📍 Tọa độ GPS: <a href={`https://maps.google.com/?q=${task.request?.location}`} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>{task.request?.location}</a>
+                  📍 Tọa độ GPS:{' '}
+                  <a href={`https://maps.google.com/?q=${task.request?.location}`} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                    {task.request?.location}
+                  </a>
                 </div>
                 {task.request?.description && (
                   <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4, fontStyle: 'italic' }}>
@@ -194,7 +196,7 @@ export const CollectorTasksView = () => {
 
               <div style={{ display: 'flex', gap: 12 }}>
                 {task.status === 'ASSIGNED' && (
-                  <button 
+                  <button
                     onClick={() => handleUpdateStatus(task.id, 'ON_THE_WAY')}
                     style={{
                       background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none',
@@ -205,7 +207,7 @@ export const CollectorTasksView = () => {
                   </button>
                 )}
                 {task.status === 'ON_THE_WAY' && (
-                  <button 
+                  <button
                     onClick={() => setSelectedTask(task)}
                     style={{
                       background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none',
@@ -224,12 +226,12 @@ export const CollectorTasksView = () => {
       {/* Modal Check-in hoàn thành */}
       {selectedTask && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <div style={{
-            background: 'linear-gradient(180deg, var(--bg-card) 0%, #0f172a 100%)', 
+            background: 'linear-gradient(180deg, var(--bg-card) 0%, #0f172a 100%)',
             padding: 40, borderRadius: 28, width: '100%', maxWidth: 480,
             border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
             animation: 'fadeInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
@@ -249,14 +251,14 @@ export const CollectorTasksView = () => {
                 <div style={{
                   border: '2px dashed rgba(16, 185, 129, 0.4)', borderRadius: 16, height: 140,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  background: photoUrl ? 'rgba(16, 185, 129, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', color: photoUrl ? '#10b981' : 'var(--text-muted)',
-                  transition: 'all 0.2s', overflow: 'hidden'
+                  background: photoUrl ? 'rgba(16, 185, 129, 0.05)' : 'rgba(0,0,0,0.2)', cursor: 'pointer',
+                  color: photoUrl ? '#10b981' : 'var(--text-muted)', transition: 'all 0.2s', overflow: 'hidden'
                 }} onClick={() => {
                   const uri = prompt('Mô phỏng chụp camera: Nhập URL ảnh bằng tay', 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=400&auto=format&fit=crop');
                   if (uri) setPhotoUrl(uri);
                 }}>
                   {photoUrl ? (
-                     <div style={{ width: '100%', height: '100%', backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                    <div style={{ width: '100%', height: '100%', backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                   ) : (
                     <>
                       <span style={{ fontSize: 36, marginBottom: 8 }}>📷</span>
@@ -271,8 +273,8 @@ export const CollectorTasksView = () => {
                   2. Khối lượng thực tế thu được (kg) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '4px 16px' }}>
-                  <input 
-                    type="number" step="0.1" required 
+                  <input
+                    type="number" step="0.1" required
                     value={weight} onChange={e => setWeight(parseFloat(e.target.value))}
                     placeholder="0.0"
                     style={{
