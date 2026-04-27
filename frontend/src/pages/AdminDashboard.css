@@ -1,0 +1,136 @@
+/* AdminDashboard.css */
+
+.admin-body {
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: #080f0d; /* Matching app's dark background */
+}
+
+/* Sidebar Customizations */
+.admin-sidebar {
+  width: 280px;
+  background-color: #111827 !important; /* Tailwind gray-900 equivalent */
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  z-index: 1040;
+}
+
+.admin-nav-link {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  margin-bottom: 4px;
+}
+
+.admin-nav-link:hover {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #4ade80 !important;
+  transform: translateX(4px);
+}
+
+/* Main Area */
+.admin-main {
+  background-color: #0a100f !important;
+}
+
+/* Header Navbar */
+.navbar {
+  background-color: rgba(17, 24, 39, 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.input-group-text, .form-control {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.form-control:focus {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(34, 197, 94, 0.5) !important;
+  box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.25);
+  color: white;
+}
+
+/* Cards */
+.admin-card-hover {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background-color: #111827 !important;
+  border-radius: 12px;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.admin-card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3) !important;
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-20deg);
+  animation: shine 6s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 200%; }
+  100% { left: 200%; }
+}
+
+/* Icon Box */
+.icon-box {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Tables */
+.admin-table {
+  background-color: transparent !important;
+}
+.admin-table th {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.admin-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02) !important;
+  color: #9ca3af; /* muted gray */
+}
+.admin-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
+  color: #fff;
+}
+.table-darker {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Badges */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Scrollbar (scoped to admin) */
+.admin-main::-webkit-scrollbar {
+  width: 6px;
+}
+.admin-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-main::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+.admin-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}

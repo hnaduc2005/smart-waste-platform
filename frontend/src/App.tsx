@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import WasteClassifierPage from './pages/WasteClassifierPage';
 import FirebasePushNotification from './components/common/FirebasePushNotification';
 import GamificationPage from './pages/GamificationPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 /** Route guard: redirect to /login if not authenticated */
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -49,6 +50,9 @@ export default function App() {
       } />
       <Route path="/gamification" element={
         <PrivateRoute><GamificationPage /></PrivateRoute>
+      } />
+      <Route path="/admin" element={
+        <PrivateRoute><AdminDashboardPage /></PrivateRoute>
       } />
 
       {/* Catch-all */}
