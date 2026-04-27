@@ -175,6 +175,26 @@ public class CollectionService {
         }).toList();
     }
 
+    public List<com.ecocycle.collection.dto.CitizenHistoryItemDto> getCitizenCompletedTasks(UUID citizenId) {
+        List<TaskAssignment> completedTasks = taskRepository.findByRequestCitizenIdAndStatusIn(citizenId,
+            java.util.List.of(RequestStatus.COMPLETED, RequestStatus.COLLECTED));
+            
+        return completedTasks.stream().map(task -> {
+            com.ecocycle.collection.domain.models.CollectionProof proof =
+                proofRepository.findByTask(task).orElse(null);
+
+            return com.ecocycle.collection.dto.CitizenHistoryItemDto.builder()
+                .taskId(task.getId())
+                .requestId(task.getRequest() != null ? task.getRequest().getId() : null)
+                .collectorId(task.getCollectorId())
+                .wasteType(task.getRequest() != null ? task.getRequest().getType().name() : null)
+                .photoUrl(proof != null ? proof.getPhotoUrl() : null)
+                .weight(proof != null ? proof.getWeight() : null)
+                .completedAt(task.getRequest() != null ? task.getRequest().getCreatedAt().toString() : null)
+                .build();
+        }).toList();
+    }
+
 
     @Transactional
     public TaskAssignment updateTaskStatus(UUID taskId, RequestStatus newStatus) {
