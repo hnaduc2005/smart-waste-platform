@@ -14,9 +14,11 @@ interface Notification {
   isRead: boolean;
 }
 
+interface NotificationViewProps {
+  onNavigateToTasks?: () => void;
+}
 
-
-export const NotificationView = () => {
+export const NotificationView = ({ onNavigateToTasks }: NotificationViewProps) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -159,7 +161,13 @@ export const NotificationView = () => {
           displayNotis.map(noti => (
             <div 
               key={noti.id} 
-              onClick={() => markAsRead(noti.id)}
+              onClick={() => {
+                markAsRead(noti.id);
+                // Nếu thông báo thuộc về nhiệm vụ thu gom mới, tự động chuyển tab
+                if (noti.title.toLowerCase().includes('nhiệm vụ') && onNavigateToTasks) {
+                  onNavigateToTasks();
+                }
+              }}
               style={{ 
                 display: 'flex', alignItems: 'flex-start', gap: 16, 
                 background: noti.isRead ? 'var(--bg-card)' : 'rgba(34,197,94,0.03)', 

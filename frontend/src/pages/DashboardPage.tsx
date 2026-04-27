@@ -116,8 +116,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user?.userId) {
       rewardApi.getHistory(user.userId).then(res => {
-        const points = res.reduce((acc, curr) => acc + curr.amount, 0);
-        setTotalPoints(points);
+        const points = res.reduce((acc, curr: any) => acc + (curr.amount ?? curr.points ?? 0), 0);
+        setTotalPoints(points || 0);
       }).catch(err => console.log('Không lấy được điểm:', err));
     }
   }, [user]);
@@ -235,7 +235,7 @@ export default function DashboardPage() {
         {activeNav === 'tasks' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <CollectorTasksView />}
         {activeNav === 'rewards' && ['CITIZEN'].includes(user?.role || '') && <RewardView />}
         {activeNav === 'reports' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenReportView />}
-        {activeNav === 'notifications' && <NotificationView />}
+        {activeNav === 'notifications' && <NotificationView onNavigateToTasks={() => setActiveNav('tasks')} />}
         {activeNav === 'settings' && <UserProfileView />}
 
         {activeNav === 'overview' && (
