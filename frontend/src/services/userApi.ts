@@ -21,6 +21,9 @@ export const userApi = {
   updateProfile: (userId: string, data: any) =>
     api.put(`/users/${userId}`, data).then(r => r.data),
 
+  getUser: (userId: string) =>
+    api.get(`/users/${userId}`).then(r => r.data),
+
   getCollectors: () =>
     api.get(`/users/collectors`).then(r => r.data),
 };

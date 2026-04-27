@@ -55,9 +55,31 @@ public class CollectionController {
 
     // --- Enterprise APIs ---
 
+    @GetMapping("/requests")
+    public ResponseEntity<List<WasteRequest>> getAllRequests(
+            @RequestParam(required = false) String status) {
+        if (status != null) {
+            try {
+                com.ecocycle.collection.domain.enums.RequestStatus s =
+                    com.ecocycle.collection.domain.enums.RequestStatus.valueOf(status);
+                return ResponseEntity.ok(collectionService.getRequestsByStatus(s));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        return ResponseEntity.ok(collectionService.getAllRequests());
+    }
+
     @GetMapping("/requests/pending")
     public ResponseEntity<List<WasteRequest>> getPendingRequests() {
         return ResponseEntity.ok(collectionService.getPendingRequests());
+    }
+
+    @PatchMapping("/requests/{requestId}/reject")
+    public ResponseEntity<WasteRequest> rejectRequest(@PathVariable UUID requestId) {
+        return collectionService.rejectRequest(requestId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/tasks/assign")

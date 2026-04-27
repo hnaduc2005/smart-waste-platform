@@ -125,6 +125,22 @@ public class CollectionService {
         return requestRepository.findByStatus(RequestStatus.PENDING);
     }
 
+    public List<WasteRequest> getAllRequests() {
+        return requestRepository.findAll();
+    }
+
+    public List<WasteRequest> getRequestsByStatus(RequestStatus status) {
+        return requestRepository.findByStatus(status);
+    }
+
+    @Transactional
+    public java.util.Optional<WasteRequest> rejectRequest(UUID requestId) {
+        return requestRepository.findById(requestId).map(req -> {
+            req.setStatus(RequestStatus.CANCELLED);
+            return requestRepository.save(req);
+        });
+    }
+
     public List<WasteRequest> getCitizenRequests(UUID citizenId) {
         return requestRepository.findByCitizenId(citizenId);
     }
