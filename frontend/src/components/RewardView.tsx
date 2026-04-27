@@ -3,6 +3,7 @@ import { Trophy, Medal, Star, Flame, History, ChevronRight, CheckCircle2, X } fr
 import FeedbackModal from '../components/common/FeedbackModal';
 import { useAuth } from '../context/AuthContext';
 import { rewardApi } from '../services/rewardApi';
+import { userApi } from '../services/userApi';
 import axios from 'axios';
 
 interface TopUser {
@@ -50,12 +51,19 @@ export const RewardView = () => {
   useEffect(() => {
     // 1. Fetch Leaderboard via Api
     rewardApi.getLeaderboard()
-      .then(res => {
-        const leaderData: TopUser[] = res.map((u, idx) => ({
-          rank: u.rank || idx + 1,
-          name: u.username || `User ${u.citizenId.substring(0,6)}`,
-          points: u.totalPoints || 0,
-          avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${u.citizenId}`
+      .then(async res => {
+        const leaderData: TopUser[] = await Promise.all(res.map(async (u, idx) => {
+          let name = u.citizenName || `User ${u.citizenId.substring(0,6)}`;
+          try {
+            const profile = await userApi.getProfile(u.citizenId);
+            if (profile?.username) name = profile.username;
+          } catch(e) {}
+          return {
+            rank: u.rank || idx + 1,
+            name: name,
+            points: u.totalPoints || 0,
+            avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${u.citizenId}`
+          };
         }));
         setTopUsers(leaderData);
       })
@@ -70,15 +78,15 @@ export const RewardView = () => {
         .then(res => {
           const txData: Transaction[] = res.map((item, idx) => ({
             id: Number(item.id) || idx,
-            title: item.reason || (item.points > 0 ? "Nhận thưởng thu gom" : "Quy đổi điểm"),
+            title: item.reason || (item.amount > 0 ? "Nhận thưởng thu gom" : "Quy đổi điểm"),
             weight: "", 
-            points: item.points > 0 ? `+${item.points}` : `${item.points}`,
+            points: item.amount > 0 ? `+${item.amount}` : `${item.amount}`,
             date: new Date(item.createdAt).toLocaleDateString('vi-VN'),
-            type: item.points > 0 ? 'earn' : 'spend'
+            type: item.amount > 0 ? 'earn' : 'spend'
           }));
           setTransactions(txData);
 
-          const total = res.reduce((acc, curr) => acc + curr.points, 0);
+          const total = res.reduce((acc, curr) => acc + curr.amount, 0);
           setCurrentPoints(total);
         })
         .catch((err) => {

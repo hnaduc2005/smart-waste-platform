@@ -16,14 +16,14 @@ api.interceptors.request.use(config => {
 export interface RewardHistory {
   id: string;
   citizenId: string;
-  points: number;
+  amount: number;
   reason: string;
   createdAt: string;
 }
 
 export interface LeaderboardEntry {
   citizenId: string;
-  username: string; // May need to fetch from user-service or reward-service returns it
+  citizenName: string;
   totalPoints: number;
   rank: number;
 }

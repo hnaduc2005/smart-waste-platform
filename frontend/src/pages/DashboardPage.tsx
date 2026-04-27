@@ -116,7 +116,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user?.userId) {
       rewardApi.getHistory(user.userId).then(res => {
-        const points = res.reduce((acc, curr) => acc + curr.points, 0);
+        const points = res.reduce((acc, curr) => acc + curr.amount, 0);
         setTotalPoints(points);
       }).catch(err => console.log('Không lấy được điểm:', err));
     }
