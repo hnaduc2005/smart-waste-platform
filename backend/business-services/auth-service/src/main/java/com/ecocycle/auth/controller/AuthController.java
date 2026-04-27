@@ -125,4 +125,23 @@ public class AuthController {
         authService.resetPassword(email, otp, newPassword);
         return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công"));
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // ADMIN ENDPOINTS
+    // ─────────────────────────────────────────────────────────────
+
+    @GetMapping("/admin/users/stats/growth")
+    public ResponseEntity<java.util.List<Map<String, Object>>> getUserGrowth() {
+        return ResponseEntity.ok(authService.getUserGrowth());
+    }
+
+    @GetMapping("/admin/users/recent")
+    public ResponseEntity<java.util.List<Map<String, Object>>> getRecentUsers() {
+        return ResponseEntity.ok(authService.getRecentUsers());
+    }
+
+    @GetMapping("/admin/users/count")
+    public ResponseEntity<Map<String, Object>> getTotalUsers() {
+        return ResponseEntity.ok(authService.getTotalUsers());
+    }
 }

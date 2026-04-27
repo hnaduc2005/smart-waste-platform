@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import com.ecocycle.reward.client.UserServiceClient;
 
 @RestController
 @RequestMapping("/api/v1/rewards")
@@ -23,25 +23,23 @@ public class RewardController {
     private final PointTransactionRepository pointTransactionRepository;
     private final GlobalRewardRuleRepository globalRewardRuleRepository;
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
-
-    private final RestTemplate restTemplate;
+    private final UserServiceClient userServiceClient;
 
     public RewardController(PointTransactionRepository pointTransactionRepository,
                             GlobalRewardRuleRepository globalRewardRuleRepository,
-                            org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate) {
+                            org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate,
+                            UserServiceClient userServiceClient) {
         this.pointTransactionRepository = pointTransactionRepository;
         this.globalRewardRuleRepository = globalRewardRuleRepository;
         this.kafkaTemplate = kafkaTemplate;
-        this.restTemplate = new RestTemplate();
+        this.userServiceClient = userServiceClient;
     }
 
     private String fetchCitizenName(UUID citizenId) {
         try {
-            // Call user-service through the internal docker network
-            String url = "http://ecocycle-user:8082/api/v1/users/" + citizenId;
-            Map<?, ?> profile = restTemplate.getForObject(url, Map.class);
+            // Call user-service through FeignClient (via Eureka load balancer)
+            Map<?, ?> profile = userServiceClient.getUserProfile(citizenId);
             if (profile != null) {
-                // CitizenProfile uses fullName, CollectorProfile also uses fullName
                 Object fullName = profile.get("fullName");
                 if (fullName != null && !fullName.toString().isBlank()) {
                     return fullName.toString();
@@ -84,23 +82,6 @@ public class RewardController {
     public ResponseEntity<List<PointTransaction>> getPointHistory(@PathVariable UUID citizenId) {
         List<PointTransaction> history = pointTransactionRepository.findByCitizenIdOrderByCreatedAtDesc(citizenId);
         return ResponseEntity.ok(history);
-    }
-
-    // --- API DÀNH RIÊNG CHO VIỆC TEST --- //
-
-    @PostMapping("/mock-event")
-    public ResponseEntity<String> mockGenerateCollectionEvent() {
-        com.ecocycle.common.events.CollectionCompletedEvent mockEvent = com.ecocycle.common.events.CollectionCompletedEvent.builder()
-                .wasteRequestId(java.util.UUID.randomUUID().toString())
-                .citizenId(java.util.UUID.randomUUID().toString())
-                .collectorId(java.util.UUID.randomUUID().toString())
-                .wasteType("RECYCLABLE")
-                .weightInKg(5.5)
-                .completedAt(java.time.Instant.now())
-                .build();
-
-        kafkaTemplate.send("waste.collection.completed", mockEvent);
-        return ResponseEntity.ok("Mô phỏng thành công!");
     }
 
     // --- REWARD RULES (Enterprise Config) --- //

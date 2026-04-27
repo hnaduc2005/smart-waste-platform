@@ -228,4 +228,34 @@ public class AuthService {
                 user.getRole().name()
         );
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. ADMIN STATS
+    // ─────────────────────────────────────────────────────────────
+
+    public java.util.List<Map<String, Object>> getRecentUsers() {
+        return userAuthRepository.findTopRecentUsers().stream().map(user -> 
+             Map.<String, Object>of(
+                 "id", user.getId(),
+                 "username", user.getUsername(),
+                 "email", user.getEmail(),
+                 "createdAt", user.getCreatedAt().toString(),
+                 "status", user.getStatus().name()
+             )
+        ).toList();
+    }
+
+    public java.util.List<Map<String, Object>> getUserGrowth() {
+        return userAuthRepository.findUserGrowthLast6Months().stream().map(row ->
+             Map.<String, Object>of(
+                 "name", (String) row[0],
+                 "users", ((Number) row[1]).intValue()
+             )
+        ).toList();
+    }
+
+    public Map<String, Object> getTotalUsers() {
+        long total = userAuthRepository.count();
+        return Map.of("count", total, "trend", 0.0); // Trend có thể tính bằng công thức tháng trước
+    }
 }

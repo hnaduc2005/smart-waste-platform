@@ -17,4 +17,11 @@ public interface UserAuthRepository extends JpaRepository<UserAuth, UUID> {
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM users_auth ORDER BY created_at DESC LIMIT 10", nativeQuery = true)
+    java.util.List<UserAuth> findTopRecentUsers();
+
+    // Lấy số đăng ký theo tháng trong 6 tháng gần đây
+    @org.springframework.data.jpa.repository.Query(value = "SELECT to_char(created_at, 'Mon') AS month, COUNT(*) AS count_users FROM users_auth WHERE created_at >= NOW() - INTERVAL '6 months' GROUP BY to_char(created_at, 'Mon'), date_trunc('month', created_at) ORDER BY date_trunc('month', created_at)", nativeQuery = true)
+    java.util.List<Object[]> findUserGrowthLast6Months();
 }

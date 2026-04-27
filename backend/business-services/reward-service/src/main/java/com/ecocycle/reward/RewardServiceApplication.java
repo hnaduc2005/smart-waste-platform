@@ -10,8 +10,11 @@ import com.ecocycle.reward.domain.enums.WasteType;
 import com.ecocycle.reward.domain.models.GlobalRewardRule;
 import com.ecocycle.reward.repository.GlobalRewardRuleRepository;
 
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
 @SpringBootApplication
 @EnableDiscoveryClient
+@EnableFeignClients
 public class RewardServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(RewardServiceApplication.class, args);
