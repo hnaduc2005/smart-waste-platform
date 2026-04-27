@@ -37,6 +37,9 @@ export const collectionApi = {
     
   getCollectorTasks: (collectorId: string) => 
     api.get(`/tasks/collector/${collectorId}`).then(r => r.data),
+
+  getCollectorHistory: (collectorId: string) =>
+    api.get(`/tasks/collector/${collectorId}/history`).then(r => r.data),
     
   updateTaskStatus: (taskId: string, status: string) =>
     api.patch(`/tasks/${taskId}/status?status=${status}`).then(r => r.data),

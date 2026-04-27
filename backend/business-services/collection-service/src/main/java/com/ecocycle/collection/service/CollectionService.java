@@ -154,6 +154,28 @@ public class CollectionService {
             java.util.List.of(RequestStatus.ASSIGNED, RequestStatus.ON_THE_WAY));
     }
 
+    public List<com.ecocycle.collection.dto.CollectorHistoryItemDto> getCollectorHistory(UUID collectorId) {
+        List<TaskAssignment> completedTasks = taskRepository.findByCollectorIdAndStatusIn(collectorId,
+            java.util.List.of(RequestStatus.COMPLETED, RequestStatus.COLLECTED));
+
+        return completedTasks.stream().map(task -> {
+            com.ecocycle.collection.domain.models.CollectionProof proof =
+                proofRepository.findByTask(task).orElse(null);
+
+            return com.ecocycle.collection.dto.CollectorHistoryItemDto.builder()
+                .taskId(task.getId())
+                .status(task.getStatus().name())
+                .requestId(task.getRequest() != null ? task.getRequest().getId() : null)
+                .wasteType(task.getRequest() != null ? task.getRequest().getType().name() : null)
+                .location(task.getRequest() != null ? task.getRequest().getLocation() : null)
+                .description(task.getRequest() != null ? task.getRequest().getDescription() : null)
+                .photoUrl(proof != null ? proof.getPhotoUrl() : null)
+                .weight(proof != null ? proof.getWeight() : null)
+                .build();
+        }).toList();
+    }
+
+
     @Transactional
     public TaskAssignment updateTaskStatus(UUID taskId, RequestStatus newStatus) {
         TaskAssignment task = taskRepository.findById(taskId)

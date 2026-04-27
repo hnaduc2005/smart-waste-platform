@@ -66,6 +66,13 @@ public class CollectionController {
         return ResponseEntity.ok(collectionService.getCollectorTasks(collectorId));
     }
 
+    @GetMapping("/tasks/collector/{collectorId}/history")
+    public ResponseEntity<List<com.ecocycle.collection.dto.CollectorHistoryItemDto>> getCollectorHistory(
+            @PathVariable UUID collectorId) {
+        return ResponseEntity.ok(collectionService.getCollectorHistory(collectorId));
+    }
+
+
     @PatchMapping("/tasks/{taskId}/status")
     public ResponseEntity<TaskAssignment> updateTaskStatus(
             @PathVariable UUID taskId,
