@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import com.ecocycle.reward.client.UserServiceClient;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/rewards")
