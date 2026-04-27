@@ -307,6 +307,23 @@ services:
     networks:
       - ecocycle-network
 
+  admin-service:
+    build:
+      context: ../../backend
+      dockerfile: business-services/admin-service/Dockerfile
+    image: ecocycle/admin-service:latest
+    container_name: ecocycle-admin
+    restart: always
+    ports:
+      - "8088:8088"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - ecocycle-network
+
   waste-classifier:
     build:
       context: ../../backend/ai-services/waste-classifier
