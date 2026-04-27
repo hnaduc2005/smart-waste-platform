@@ -31,6 +31,14 @@ export const collectionApi = {
 
   getCitizenCompletedTasks: (citizenId: string) =>
     api.get(`/tasks/citizen/${citizenId}/history`).then(res => res.data),
+
+  getAllRequests: (status?: string) => {
+    const params = status ? { status } : {};
+    return api.get('/requests', { params }).then(res => res.data);
+  },
+
+  rejectRequest: (requestId: string) =>
+    api.patch(`/requests/${requestId}/reject`).then(res => res.data),
     
   getPendingRequests: () => 
     api.get('/requests/pending').then(res => res.data),

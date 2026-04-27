@@ -10,6 +10,8 @@ import { RewardView } from '../components/RewardView';
 import { CitizenReportView } from '../components/CitizenReportView';
 import { NotificationView } from '../components/NotificationView';
 import { UserProfileView } from '../components/UserProfileView';
+import { EnterpriseDashboardView } from '../components/EnterpriseDashboardView';
+import { EnterpriseStatsView } from '../components/EnterpriseStatsView';
 import { notificationApi } from '../services/notificationApi';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -26,11 +28,13 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { icon: '🏠', label: 'Tổng quan', id: 'overview', active: true, roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
   { icon: '🗑️', label: 'Yêu cầu thu gom', id: 'requests', roles: ['CITIZEN'] },
-  { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks', roles: ['COLLECTOR', 'ENTERPRISE'] },
+  { icon: '🚚', label: 'Tuyến thu gom', id: 'tasks', roles: ['COLLECTOR'] },
   { icon: '📋', label: 'Lịch sử thu gom', id: 'history', roles: ['COLLECTOR'] },
+  { icon: '🏭', label: 'Quản lý doanh nghiệp', id: 'enterprise', roles: ['ENTERPRISE'] },
+  { icon: '📊', label: 'Thống kê vận hành', id: 'stats', roles: ['ENTERPRISE'] },
+  { icon: '🗺️', label: 'Bản đồ điều phối', id: 'map', roles: ['ENTERPRISE'] },
   { icon: '🏆', label: 'Điểm thưởng', id: 'rewards', roles: ['CITIZEN'] },
-  { icon: '📊', label: 'Báo cáo', id: 'reports', roles: ['CITIZEN', 'ENTERPRISE'] },
-  { icon: '🗺️', label: 'Bản đồ', id: 'map', roles: ['ENTERPRISE'] },
+  { icon: '📊', label: 'Báo cáo', id: 'reports', roles: ['CITIZEN'] },
   { icon: '🔔', label: 'Thông báo', id: 'notifications', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
   { icon: '⚙️', label: 'Cài đặt', id: 'settings', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
 ];
@@ -233,11 +237,13 @@ export default function DashboardPage() {
       <main style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
 
         {activeNav === 'requests' && ['CITIZEN'].includes(user?.role || '') && <CitizenRequestView />}
-        {activeNav === 'map' && ['ENTERPRISE'].includes(user?.role || '') && <MapDispatcher />}
-        {activeNav === 'tasks' && ['COLLECTOR', 'ENTERPRISE'].includes(user?.role || '') && <CollectorTasksView />}
+        {activeNav === 'map' && user?.role === 'ENTERPRISE' && <MapDispatcher />}
+        {activeNav === 'tasks' && user?.role === 'COLLECTOR' && <CollectorTasksView />}
         {activeNav === 'history' && user?.role === 'COLLECTOR' && <CollectorHistoryView />}
-        {activeNav === 'rewards' && ['CITIZEN'].includes(user?.role || '') && <RewardView />}
-        {activeNav === 'reports' && ['CITIZEN', 'ENTERPRISE'].includes(user?.role || '') && <CitizenReportView />}
+        {activeNav === 'rewards' && user?.role === 'CITIZEN' && <RewardView />}
+        {activeNav === 'reports' && user?.role === 'CITIZEN' && <CitizenReportView />}
+        {activeNav === 'enterprise' && user?.role === 'ENTERPRISE' && <EnterpriseDashboardView />}
+        {activeNav === 'stats' && user?.role === 'ENTERPRISE' && <EnterpriseStatsView />}
         {activeNav === 'notifications' && <NotificationView onNavigateToTasks={() => setActiveNav('tasks')} />}
         {activeNav === 'settings' && <UserProfileView />}
 

@@ -1,15 +1,13 @@
 package com.ecocycle.reward.controller;
 
 import com.ecocycle.reward.domain.models.PointTransaction;
+import com.ecocycle.reward.domain.models.GlobalRewardRule;
 import com.ecocycle.reward.dto.LeaderboardDto;
+import com.ecocycle.reward.repository.GlobalRewardRuleRepository;
 import com.ecocycle.reward.repository.PointTransactionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -23,13 +21,16 @@ import java.util.stream.Collectors;
 public class RewardController {
 
     private final PointTransactionRepository pointTransactionRepository;
+    private final GlobalRewardRuleRepository globalRewardRuleRepository;
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
     private final RestTemplate restTemplate;
 
     public RewardController(PointTransactionRepository pointTransactionRepository,
+                            GlobalRewardRuleRepository globalRewardRuleRepository,
                             org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate) {
         this.pointTransactionRepository = pointTransactionRepository;
+        this.globalRewardRuleRepository = globalRewardRuleRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.restTemplate = new RestTemplate();
     }
@@ -90,9 +91,9 @@ public class RewardController {
     @PostMapping("/mock-event")
     public ResponseEntity<String> mockGenerateCollectionEvent() {
         com.ecocycle.common.events.CollectionCompletedEvent mockEvent = com.ecocycle.common.events.CollectionCompletedEvent.builder()
-                .wasteRequestId(UUID.randomUUID().toString())
-                .citizenId(UUID.randomUUID().toString())
-                .collectorId(UUID.randomUUID().toString())
+                .wasteRequestId(java.util.UUID.randomUUID().toString())
+                .citizenId(java.util.UUID.randomUUID().toString())
+                .collectorId(java.util.UUID.randomUUID().toString())
                 .wasteType("RECYCLABLE")
                 .weightInKg(5.5)
                 .completedAt(java.time.Instant.now())
@@ -100,5 +101,36 @@ public class RewardController {
 
         kafkaTemplate.send("waste.collection.completed", mockEvent);
         return ResponseEntity.ok("Mô phỏng thành công!");
+    }
+
+    // --- REWARD RULES (Enterprise Config) --- //
+
+    /** GET /api/v1/rewards/rules — Lấy tất cả quy tắc điểm thưởng */
+    @GetMapping("/rules")
+    public ResponseEntity<java.util.List<GlobalRewardRule>> getAllRules() {
+        return ResponseEntity.ok(globalRewardRuleRepository.findAll());
+    }
+
+    /** PUT /api/v1/rewards/rules/{wasteType} — Cập nhật điểm/kg cho loại rác */
+    @PutMapping("/rules/{wasteType}")
+    public ResponseEntity<GlobalRewardRule> updateRule(
+            @PathVariable String wasteType,
+            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, Double> body) {
+        com.ecocycle.reward.domain.enums.WasteType type;
+        try {
+            type = com.ecocycle.reward.domain.enums.WasteType.valueOf(wasteType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        Double pointsPerKg = body.get("pointsPerKg");
+        if (pointsPerKg == null || pointsPerKg < 0) return ResponseEntity.badRequest().build();
+
+        GlobalRewardRule rule = globalRewardRuleRepository.findByType(type).orElseGet(() -> {
+            GlobalRewardRule r = new GlobalRewardRule();
+            r.setType(type);
+            return r;
+        });
+        rule.setPointsPerKg(pointsPerKg);
+        return ResponseEntity.ok(globalRewardRuleRepository.save(rule));
     }
 }
