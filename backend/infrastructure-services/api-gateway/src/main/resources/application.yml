@@ -99,6 +99,17 @@ spring:
           filters:
             - AuthenticationFilter
 
+        # === ADMIN SERVICE ===
+        - id: admin-service-route
+          uri: lb://admin-service
+          predicates:
+            - Path=/api/v1/admin/**
+          filters:
+            - name: AuthenticationFilter
+              args:
+                allowedRoles:
+                  - ADMIN
+
       # GlobalFilter: Thêm CORS header cho Gateway
       globalcors:
         corsConfigurations:

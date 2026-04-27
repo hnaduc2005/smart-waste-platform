@@ -4,13 +4,13 @@
   height: 100vh;
   overflow: hidden;
   font-family: 'Inter', -apple-system, sans-serif;
-  background-color: #080f0d; /* Matching app's dark background */
+  background-color: #080f0d; 
 }
 
 /* Sidebar Customizations */
 .admin-sidebar {
   width: 280px;
-  background-color: #111827 !important; /* Tailwind gray-900 equivalent */
+  background-color: #111827 !important; 
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
   z-index: 1040;
