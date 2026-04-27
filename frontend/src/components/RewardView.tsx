@@ -53,14 +53,11 @@ export const RewardView = () => {
     rewardApi.getLeaderboard()
       .then(async res => {
         const leaderData: TopUser[] = await Promise.all(res.map(async (u, idx) => {
-          let name = u.citizenName || `User ${u.citizenId.substring(0,6)}`;
-          try {
-            const profile = await userApi.getProfile(u.citizenId);
-            if (profile?.username) name = profile.username;
-          } catch(e) {}
+          // citizenName is now fetched from user-service by backend directly
+          // Use it as-is; it will be fullName if backend call succeeded, or fallback
           return {
             rank: u.rank || idx + 1,
-            name: name,
+            name: u.citizenName || `User ${u.citizenId.substring(0, 8)}`,
             points: u.totalPoints || 0,
             avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${u.citizenId}`
           };
@@ -76,18 +73,36 @@ export const RewardView = () => {
     if (user?.userId) {
       rewardApi.getHistory(user.userId)
         .then(res => {
-          const txData: Transaction[] = res.map((item, idx) => ({
-            id: Number(item.id) || idx,
-            title: item.reason || (item.amount > 0 ? "Nhận thưởng thu gom" : "Quy đổi điểm"),
-            weight: "", 
-            points: item.amount > 0 ? `+${item.amount}` : `${item.amount}`,
-            date: new Date(item.createdAt).toLocaleDateString('vi-VN'),
-            type: item.amount > 0 ? 'earn' : 'spend'
-          }));
+          const humanizeReason = (reason: string) => {
+            if (!reason) return 'Nhận thưởng thu gom';
+            return reason
+              .replace('Phan loai rac:', 'Phân loại rác:')
+              .replace('RECYCLABLE', '♻️ Tái chế')
+              .replace('ORGANIC', '🍎 Hữu cơ')
+              .replace('HAZARDOUS', '⚠️ Độc hại')
+              .replace('ELECTRONIC', '💻 Điện tử')
+              .replace('BULKY', '🛋️ Cồng kềnh');
+          };
+          const txData: Transaction[] = res.map((item: any, idx) => {
+            const val = item.amount ?? item.points ?? 0;
+            return {
+              id: idx,
+              title: humanizeReason(item.reason),
+              weight: "",
+              points: val > 0 ? `+${val}` : `${val}`,
+              date: (() => {
+                const raw = item.createdAt;
+                if (!raw) return '';
+                const str = raw.includes('T') && !raw.endsWith('Z') && !raw.includes('+') ? raw + 'Z' : raw;
+                return new Date(str).toLocaleDateString('vi-VN');
+              })(),
+              type: val > 0 ? 'earn' : 'spend'
+            };
+          });
           setTransactions(txData);
 
-          const total = res.reduce((acc, curr) => acc + curr.amount, 0);
-          setCurrentPoints(total);
+          const total = res.reduce((acc, curr: any) => acc + (curr.amount ?? curr.points ?? 0), 0);
+          setCurrentPoints(total || 0);
         })
         .catch((err) => {
           console.error("Lỗi lấy History:", err);

@@ -41,7 +41,7 @@ public class RewardCalculatorService {
             PointTransaction transaction = new PointTransaction();
             transaction.setCitizenId(UUID.fromString(event.getCitizenId()));
             transaction.setAmount(pointsEarned);
-            transaction.setReason("Phân loại rác: " + wasteType.name() + " (" + event.getWeightInKg() + "kg)");
+            transaction.setReason("Phan loai rac: " + wasteType.name() + " (" + event.getWeightInKg() + "kg)");
             pointTransactionRepository.save(transaction);
 
             // Fetch total points for the citizen to send in the event

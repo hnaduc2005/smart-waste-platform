@@ -3,14 +3,14 @@ package com.ecocycle.reward.controller;
 import com.ecocycle.reward.domain.models.PointTransaction;
 import com.ecocycle.reward.dto.LeaderboardDto;
 import com.ecocycle.reward.repository.PointTransactionRepository;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -18,19 +18,48 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-
 @RequestMapping("/api/v1/rewards")
-@RequiredArgsConstructor
+@Slf4j
 public class RewardController {
 
     private final PointTransactionRepository pointTransactionRepository;
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
+    private final RestTemplate restTemplate;
+
+    public RewardController(PointTransactionRepository pointTransactionRepository,
+                            org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate) {
+        this.pointTransactionRepository = pointTransactionRepository;
+        this.kafkaTemplate = kafkaTemplate;
+        this.restTemplate = new RestTemplate();
+    }
+
+    private String fetchCitizenName(UUID citizenId) {
+        try {
+            // Call user-service through the internal docker network
+            String url = "http://ecocycle-user:8082/api/v1/users/" + citizenId;
+            Map<?, ?> profile = restTemplate.getForObject(url, Map.class);
+            if (profile != null) {
+                // CitizenProfile uses fullName, CollectorProfile also uses fullName
+                Object fullName = profile.get("fullName");
+                if (fullName != null && !fullName.toString().isBlank()) {
+                    return fullName.toString();
+                }
+                Object companyName = profile.get("companyName");
+                if (companyName != null && !companyName.toString().isBlank()) {
+                    return companyName.toString();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch name for citizen {}: {}", citizenId, e.getMessage());
+        }
+        return "User " + citizenId.toString().substring(0, 8);
+    }
+
     @GetMapping("/leaderboard")
     public ResponseEntity<List<LeaderboardDto>> getLeaderboard() {
-        // Simple Leaderboard memory calculation (In production should use aggregation query in repository)
         List<PointTransaction> allTransactions = pointTransactionRepository.findAll();
-        
+
         Map<UUID, Double> groupedByCitizen = allTransactions.stream()
                 .collect(Collectors.groupingBy(
                         PointTransaction::getCitizenId,
@@ -41,7 +70,7 @@ public class RewardController {
                 .map(entry -> LeaderboardDto.builder()
                         .citizenId(entry.getKey())
                         .totalPoints(entry.getValue())
-                        .citizenName("Citizen " + entry.getKey().toString().substring(0, 5)) // Mock name
+                        .citizenName(fetchCitizenName(entry.getKey()))
                         .build())
                 .sorted((a, b) -> Double.compare(b.getTotalPoints(), a.getTotalPoints()))
                 .limit(10)
@@ -69,10 +98,7 @@ public class RewardController {
                 .completedAt(java.time.Instant.now())
                 .build();
 
-        // Đảm bảo là có sẵn 1 Rule trong logic trước 
-        // Nếu DB chưa có rule "RECYCLABLE", hãy cấu hình sẵn hoặc insert tạm
-        
         kafkaTemplate.send("waste.collection.completed", mockEvent);
-        return ResponseEntity.ok("Mô phỏng thành công! Đã ném event vào Kafka topic 'waste.collection.completed'. Hãy xem log của reward-service và notification-service.");
+        return ResponseEntity.ok("Mô phỏng thành công!");
     }
 }
