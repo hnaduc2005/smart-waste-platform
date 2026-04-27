@@ -4,6 +4,7 @@ import FeedbackModal from '../components/common/FeedbackModal';
 import { useAuth } from '../context/AuthContext';
 import { rewardApi } from '../services/rewardApi';
 import { userApi } from '../services/userApi';
+import { collectionApi } from '../services/collectionApi';
 import axios from 'axios';
 
 interface TopUser {
@@ -32,6 +33,10 @@ export const RewardView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  const [latestTask, setLatestTask] = useState<any>(null);
+  const [collectorName, setCollectorName] = useState<string>('Người thu gom');
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
   const handleRedeem = (cost: number) => {
     setErrorMsg('');
@@ -109,6 +114,20 @@ export const RewardView = () => {
           setCurrentPoints(0);
           setTransactions([]);
         });
+        
+      collectionApi.getCitizenCompletedTasks(user.userId).then(async (tasks) => {
+        if (tasks && tasks.length > 0) {
+          const sorted = tasks.sort((a: any, b: any) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
+          const latest = sorted[0];
+          setLatestTask(latest);
+          try {
+             const cUser = await userApi.getUser(latest.collectorId);
+             setCollectorName(cUser.fullName || 'Người thu gom');
+          } catch (e) {
+             setCollectorName('Người thu gom');
+          }
+        }
+      }).catch(console.error);
     }
   }, [user?.userId]);
 
@@ -139,6 +158,16 @@ export const RewardView = () => {
             </div>
             
             <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              {feedbackSuccess && (
+                <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.5)', color: '#34d399', padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, animation: 'slideDown 0.3s ease' }}>
+                  Cảm ơn bạn đã gửi đánh giá!
+                </div>
+              )}
+              {errorMsg && (
+                <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, animation: 'slideDown 0.3s ease' }}>
+                  {errorMsg}
+                </div>
+              )}
               <button 
                 onClick={() => { setIsModalOpen(true); setErrorMsg(''); }}
                 style={{ 
@@ -149,7 +178,13 @@ export const RewardView = () => {
                 Đổi Thưởng
               </button>
               <button 
-                onClick={() => setIsFeedbackOpen(true)}
+                onClick={() => {
+                  if (!latestTask) {
+                    setErrorMsg("Bạn chưa có đơn thu gom nào hoàn thành để đánh giá.");
+                    return;
+                  }
+                  setIsFeedbackOpen(true);
+                }}
                 style={{ 
                   background: 'rgba(13, 148, 136, 0.5)', color: 'white', fontWeight: 600, padding: '12px 24px', 
                   borderRadius: 12, border: '1px solid rgba(20, 184, 166, 0.3)', cursor: 'pointer', backdropFilter: 'blur(4px)' 
@@ -267,23 +302,27 @@ export const RewardView = () => {
       </div>
 
       {/* Tích hợp Modal Feedback vào Trang */}
-      <FeedbackModal 
-        isOpen={isFeedbackOpen}
-        onClose={() => setIsFeedbackOpen(false)}
-        onSubmit={async (rating, comment) => {
-          try {
-            await axios.post(`/api/v1/feedback`, {
-              requestId: "11111111-2222-3333-4444-555555555555",
-              rating: rating,
-              comment: comment
-            });
-            console.log("Đã gửi rating lên Server thành công:", rating, comment);
-          } catch (error) {
-            console.error("Lỗi khi gửi đánh giá:", error);
-          }
-        }}
-        collectorName="Anh Lê Bảo Tín (59H1)"
-      />
+      {latestTask && (
+        <FeedbackModal 
+          isOpen={isFeedbackOpen}
+          onClose={() => setIsFeedbackOpen(false)}
+          onSubmit={async (rating, comment) => {
+            try {
+              await axios.post(`/api/v1/feedback`, {
+                requestId: latestTask.requestId,
+                rating: rating,
+                comment: comment
+              });
+              setFeedbackSuccess(true);
+              setTimeout(() => setFeedbackSuccess(false), 3000);
+            } catch (error) {
+              console.error("Lỗi khi gửi đánh giá:", error);
+              setErrorMsg("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại sau.");
+            }
+          }}
+          collectorName={collectorName}
+        />
+      )}
 
       {/* Modal Đổi Thưởng */}
       {isModalOpen && (
