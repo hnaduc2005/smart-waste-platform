@@ -14,13 +14,14 @@ api.interceptors.request.use(config => {
 });
 
 export const collectionApi = {
-  createRequest: (data: { citizenId: string; type: string; location: string; imageUrl?: string }) => 
+  createRequest: (data: { citizenId: string; type: string; location: string; description?: string; imageUrl?: string }) => 
     api.post('/request', data).then(res => res.data),
 
-  createRequestWithImage: (citizenId: string, location: string, image: File) => {
+  createRequestWithImage: (citizenId: string, location: string, description: string, image: File) => {
     const formData = new FormData();
     formData.append('citizenId', citizenId);
     formData.append('location', location);
+    if (description) formData.append('description', description);
     formData.append('image', image);
     return api.post('/requests/with-image', formData).then(res => res.data);
   },

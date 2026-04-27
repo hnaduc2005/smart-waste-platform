@@ -35,6 +35,9 @@ public class WasteRequest {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;

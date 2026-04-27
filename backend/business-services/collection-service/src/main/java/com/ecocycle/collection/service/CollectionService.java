@@ -55,13 +55,14 @@ public class CollectionService {
         request.setType(dto.getType());
         request.setLocation(dto.getLocation());
         request.setImageUrl(dto.getImageUrl());
+        request.setDescription(dto.getDescription());
         request.setStatus(RequestStatus.PENDING);
 
         return requestRepository.save(request);
     }
 
     @Transactional
-    public WasteRequest detectAndCreateWasteRequest(UUID citizenId, String location, MultipartFile image) {
+    public WasteRequest detectAndCreateWasteRequest(UUID citizenId, String location, String description, MultipartFile image) {
         log.info("Receiving image for AI detection and creating waste request for citizen: {}", citizenId);
 
         WasteType finalWasteType = WasteType.RECYCLABLE; // Default
@@ -111,6 +112,7 @@ public class CollectionService {
         request.setCitizenId(citizenId);
         request.setType(finalWasteType);
         request.setLocation(location);
+        request.setDescription(description);
         // For production, image should be uploaded to S3. Here we put a placeholder or
         // basic string.
         request.setImageUrl("https://via.placeholder.com/300?text=Auto+AI+Processed");

@@ -47,6 +47,7 @@ export const CitizenRequestView = () => {
   // Form State
   const [type, setType] = useState('RECYCLABLE');
   const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
@@ -104,12 +105,13 @@ export const CitizenRequestView = () => {
     try {
       setSubmitting(true);
       if (imageFile) {
-        await collectionApi.createRequestWithImage(user.userId, location, imageFile);
+        await collectionApi.createRequestWithImage(user.userId, location, description, imageFile);
       } else {
         await collectionApi.createRequest({
           citizenId: user.userId,
           type,
           location,
+          description,
           imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image'
         });
       }
@@ -132,6 +134,7 @@ export const CitizenRequestView = () => {
     } finally {
       setShowForm(false);
       setLocation('');
+      setDescription('');
       setImageUrl('');
       setImageFile(null);
       setType('RECYCLABLE');
@@ -231,6 +234,23 @@ export const CitizenRequestView = () => {
               </div>
             </div>
 
+            {/* Description */}
+            <div>
+              <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                Mô tả chi tiết <span style={{fontSize: 12, fontWeight: 400}}>(Tùy chọn)</span>
+              </label>
+              <textarea 
+                value={description} onChange={(e) => setDescription(e.target.value)} 
+                placeholder="Ví dụ: Rác để trong hẻm, có 3 túi to..."
+                rows={3}
+                style={{
+                  width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)',
+                  padding: '14px 16px', borderRadius: 12, color: 'var(--text)', fontSize: 15, fontFamily: 'inherit',
+                  resize: 'vertical', boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
             {/* Image Upload for AI */}
             <div>
               <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
@@ -290,6 +310,7 @@ export const CitizenRequestView = () => {
                   <th style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>ID</th>
                   <th style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>Phân loại</th>
                   <th style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>Tọa độ (GPS)</th>
+                  <th style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>Mô tả</th>
                   <th style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>Trạng thái</th>
                   <th style={{ padding: '16px 24px', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>Thời gian</th>
                 </tr>
@@ -309,6 +330,9 @@ export const CitizenRequestView = () => {
                            style={{ color: '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
                           📍 Xem MAP
                         </a>
+                      </td>
+                      <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-secondary)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.description || '-'}
                       </td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{

@@ -185,6 +185,11 @@ export const CollectorTasksView = () => {
                 <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
                   📍 Tọa độ GPS: <a href={`https://maps.google.com/?q=${task.request?.location}`} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>{task.request?.location}</a>
                 </div>
+                {task.request?.description && (
+                  <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4, fontStyle: 'italic' }}>
+                    📝 Ghi chú: {task.request.description}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>

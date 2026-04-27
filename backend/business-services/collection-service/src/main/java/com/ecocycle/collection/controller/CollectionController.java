@@ -36,9 +36,10 @@ public class CollectionController {
     public ResponseEntity<WasteRequest> createWasteRequestWithImage(
             @RequestParam("citizenId") UUID citizenId,
             @RequestParam("location") String location,
+            @RequestParam(value = "description", required = false) String description,
             @RequestParam("image") MultipartFile image) {
         System.out.println("DEBUG: createWasteRequestWithImage called for citizen " + citizenId + ", location " + location);
-        return new ResponseEntity<>(collectionService.detectAndCreateWasteRequest(citizenId, location, image), HttpStatus.CREATED);
+        return new ResponseEntity<>(collectionService.detectAndCreateWasteRequest(citizenId, location, description, image), HttpStatus.CREATED);
     }
 
     @GetMapping("/requests/citizen/{citizenId}")
