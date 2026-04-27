@@ -47,6 +47,12 @@ public class CollectionController {
         return ResponseEntity.ok(collectionService.getCitizenRequests(citizenId));
     }
 
+    @GetMapping("/tasks/citizen/{citizenId}/history")
+    public ResponseEntity<List<com.ecocycle.collection.dto.CitizenHistoryItemDto>> getCitizenCompletedTasks(
+            @PathVariable UUID citizenId) {
+        return ResponseEntity.ok(collectionService.getCitizenCompletedTasks(citizenId));
+    }
+
     // --- Enterprise APIs ---
 
     @GetMapping("/requests/pending")

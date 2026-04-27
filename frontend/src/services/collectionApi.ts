@@ -28,6 +28,9 @@ export const collectionApi = {
     
   getCitizenRequests: (citizenId: string) => 
     api.get(`/requests/citizen/${citizenId}`).then(res => res.data),
+
+  getCitizenCompletedTasks: (citizenId: string) =>
+    api.get(`/tasks/citizen/${citizenId}/history`).then(res => res.data),
     
   getPendingRequests: () => 
     api.get('/requests/pending').then(res => res.data),
