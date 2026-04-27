@@ -32,8 +32,10 @@ export const collectionApi = {
   getCitizenCompletedTasks: (citizenId: string) =>
     api.get(`/tasks/citizen/${citizenId}/history`).then(res => res.data),
 
-  getAllRequests: (status?: string) => {
-    const params = status ? { status } : {};
+  getAllRequests: (status?: string, district?: string) => {
+    const params: any = {};
+    if (status) params.status = status;
+    if (district) params.district = district;
     return api.get('/requests', { params }).then(res => res.data);
   },
 

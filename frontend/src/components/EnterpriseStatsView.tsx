@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi, DashboardData } from '../services/analyticsApi';
-import axios from 'axios';
+import { enterpriseApi } from '../services/enterpriseApi';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, PieChart, Pie, Legend
@@ -32,7 +32,7 @@ export const EnterpriseStatsView = () => {
   useEffect(() => {
     Promise.allSettled([
       analyticsApi.getDashboardData(),
-      axios.get<SystemOverview>(`${ENTERPRISE_API}/overview`).then(r => r.data),
+      enterpriseApi.getOverview(),
     ]).then(([analyticsResult, overviewResult]) => {
       if (analyticsResult.status === 'fulfilled') setAnalyticsData(analyticsResult.value);
       if (overviewResult.status === 'fulfilled') setOverview(overviewResult.value);
@@ -41,9 +41,11 @@ export const EnterpriseStatsView = () => {
 
   // Tính tổng khối lượng theo loại rác từ weekly data
   const wasteByType = analyticsData ? [
-    { name: 'Tái chế', value: analyticsData.weekly.reduce((s, d) => s + d.recycle, 0) },
-    { name: 'Hữu cơ',  value: analyticsData.weekly.reduce((s, d) => s + d.organic, 0) },
-    { name: 'Độc hại',  value: analyticsData.weekly.reduce((s, d) => s + d.hazardous, 0) },
+    { name: 'Tái chế',   value: analyticsData.weekly.reduce((s, d) => s + (d.recycle   ?? 0), 0) },
+    { name: 'Hữu cơ',   value: analyticsData.weekly.reduce((s, d) => s + (d.organic   ?? 0), 0) },
+    { name: 'Độc hại',   value: analyticsData.weekly.reduce((s, d) => s + (d.hazardous ?? 0), 0) },
+    { name: 'Điện tử',   value: analyticsData.weekly.reduce((s, d) => s + (d.electronic ?? 0), 0) },
+    { name: 'Cồng kềnh', value: analyticsData.weekly.reduce((s, d) => s + (d.bulky     ?? 0), 0) },
   ].filter(d => d.value > 0) : [];
 
   const totalWeightKg = analyticsData?.districts.reduce((s, d) => s + d.total, 0) ?? 0;

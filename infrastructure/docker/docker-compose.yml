@@ -9,6 +9,7 @@ services:
     image: postgres:15-alpine
     container_name: ecocycle-postgres
     restart: always
+    command: postgres -c max_connections=500
     environment:
       POSTGRES_USER: ecocycle
       POSTGRES_PASSWORD: ecocycle_password
@@ -224,6 +225,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/reward_db
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      SPRING_MAIL_USERNAME: "voduykhanh.6275@gmail.com"
+      SPRING_MAIL_PASSWORD: "xfqg dyai pqsr ebum"
     depends_on:
       postgres-db:
         condition: service_healthy

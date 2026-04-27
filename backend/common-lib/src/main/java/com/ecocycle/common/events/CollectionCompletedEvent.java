@@ -18,4 +18,6 @@ public class CollectionCompletedEvent {
     private String wasteType; // e.g. "RECYCLABLE", "ORGANIC", "HAZARDOUS"
     private Double weightInKg;
     private Instant completedAt;
+    private String location;  // "lat,lng" hoặc địa chỉ dạng text
+    private String district;  // Tên quận/huyện (nếu có)
 }

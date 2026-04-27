@@ -27,6 +27,11 @@ export interface Enterprise {
   licenseNumber: string;
   address: string;
   dailyCapacity: number;
+  serviceArea?: string;
+  acceptedWasteTypes?: string;
+  phone?: string;
+  email?: string;
+  ownerUserId?: string;
 }
 
 export const enterpriseApi = {
@@ -36,6 +41,7 @@ export const enterpriseApi = {
   createEnterprise: (data: Enterprise) => api.post('/enterprises', data).then(res => res.data),
   updateEnterprise: (id: number, data: Partial<Enterprise>) => api.put(`/enterprises/${id}`, data).then(res => res.data),
   getCapacity: (id: number) => api.get(`/enterprises/${id}/capacity`).then(res => res.data),
+  getOverview: () => api.get('/enterprises/overview').then(res => res.data),
 
   // Vehicles
   getVehicles: (status?: string) => {

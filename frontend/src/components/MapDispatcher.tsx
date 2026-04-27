@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { collectionApi } from '../services/collectionApi';
 import { notificationApi } from '../services/notificationApi';
 import { userApi } from '../services/userApi';
+import { enterpriseApi } from '../services/enterpriseApi';
+import { useAuth } from '../context/AuthContext';
 
 // Cố định lỗi icon mặc định của leaflet khi dùng react
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -45,11 +47,17 @@ const WASTE_TYPE_MAP: Record<string, string> = {
 };
 
 export const MapDispatcher = () => {
+  const { user } = useAuth();
   const [requests, setRequests] = useState<any[]>([]);
   const [collectors, setCollectors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [assignMsg, setAssignMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [enterprise, setEnterprise] = useState<any>(null);
+
+  // Dùng ref để interval luôn đọc được giá trị mới nhất (tránh stale closure)
+  const serviceAreaRef = useRef<string | undefined>(undefined);
+  const rejectedIdsRef = useRef<Set<string>>(new Set());
 
   // Default center: Ho Chi Minh City
   const DEFAULT_LAT = 10.823;
@@ -62,9 +70,7 @@ export const MapDispatcher = () => {
         id: c.id,
         name: c.fullName || 'Tài xế',
         vehiclePlate: c.vehiclePlate || '',
-        // isOnline=null or true → Sẵn sàng; false → Không hoạt động
         status: c.isOnline === false ? 'Không hoạt động' : 'Sẵn sàng',
-        // Use real GPS if available, otherwise spread around city center
         coords: (c.latitude && c.longitude)
           ? [c.latitude, c.longitude]
           : [DEFAULT_LAT + (index % 3) * 0.008, DEFAULT_LNG + Math.floor(index / 3) * 0.008]
@@ -79,8 +85,12 @@ export const MapDispatcher = () => {
   const fetchPending = async () => {
     try {
       setLoading(true);
-      const data = await collectionApi.getPendingRequests();
-      setRequests(data);
+      const sa = serviceAreaRef.current;
+      const districtParam = (sa && sa !== 'Toàn TP.HCM') ? sa : undefined;
+      const data = await collectionApi.getAllRequests('PENDING', districtParam);
+      // Lọc ra những đơn đã bị reject (trong trường hợp API chưa kịp cập nhật)
+      const filtered = (data || []).filter((r: any) => !rejectedIdsRef.current.has(r.id));
+      setRequests(filtered);
     } catch (e) {
       console.error('Lỗi tải đơn pending:', e);
       setRequests([]);
@@ -90,15 +100,25 @@ export const MapDispatcher = () => {
   };
 
   useEffect(() => {
-    fetchPending();
-    fetchCollectors();
-    // Auto-refresh every 10 seconds
+    const init = async () => {
+      if (user?.userId) {
+        try {
+          const ent = await enterpriseApi.getMyEnterprise(user.userId);
+          setEnterprise(ent);
+          serviceAreaRef.current = ent?.serviceArea;  // cập nhật ref
+        } catch { /* no enterprise */ }
+      }
+      fetchPending();
+      fetchCollectors();
+    };
+    init();
+    // interval luôn đọc serviceAreaRef.current — không bị stale closure
     const interval = setInterval(() => {
       fetchPending();
       fetchCollectors();
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.userId]);
 
   const handleAssign = async (reqId: string, collectorId: string) => {
     if (!collectorId) return;
@@ -113,7 +133,7 @@ export const MapDispatcher = () => {
 
       setAssignMsg({ type: 'success', text: '✅ Đã gán nhiệm vụ thành công!' });
       setTimeout(() => setAssignMsg(null), 3000);
-      fetchPending();
+      fetchPending(enterprise?.serviceArea);
 
       // Gửi thông báo cho cả hai bên
       if (citizenId) {
@@ -142,8 +162,32 @@ export const MapDispatcher = () => {
       setAssigningId(null);
     }
   };
+  const handleReject = async (reqId: string, citizenId: string) => {
+    // Đánh dấu ngay vào ref — interval fetch sau này cũng sẽ lọc ra
+    rejectedIdsRef.current.add(reqId);
+    // Xóa khỏi UI ngay lập tức
+    setRequests(prev => prev.filter(r => r.id !== reqId));
+    try {
+      await collectionApi.rejectRequest(reqId);
+      setAssignMsg({ type: 'success', text: '✅ Đã từ chối đơn' });
+      setTimeout(() => setAssignMsg(null), 3000);
+      if (citizenId) {
+        notificationApi.create({
+          userId: citizenId,
+          title: 'Đơn thu gom bị từ chối ❌',
+          message: `Đơn (ID: ${reqId.substring(0,8)}) không phù hợp với khu vực phục vụ.`,
+          type: 'SYSTEM',
+          isRead: false
+        }).catch(console.warn);
+      }
+    } catch (e) {
+      // Nếu API thất bại, xóa khỏi ref và restore lại UI bằng cách fetch mới
+      rejectedIdsRef.current.delete(reqId);
+      setAssignMsg({ type: 'error', text: '❌ Không thể từ chối đơn' });
+      setTimeout(() => setAssignMsg(null), 3000);
+    }
+  };
 
-  // Drag & Drop Handlers for collectors
   const handleDragStart = (e: React.DragEvent, collectorId: string) => {
     e.dataTransfer.setData('collectorId', collectorId);
   };
@@ -286,7 +330,12 @@ export const MapDispatcher = () => {
              📋 Đơn chờ phân công
           </h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
-            {requests.length === 0 ? 'Hiện tại không có đơn nào.' : `Có ${requests.length} yêu cầu cần được điều phối.`}
+            {requests.length === 0 ? 'Không có đơn nào trong khu vực.' : `Có ${requests.length} yêu cầu cần được điều phối`}
+            {enterprise?.serviceArea && (
+              <span style={{ display: 'block', marginTop: 6, color: '#34d399', fontWeight: 700 }}>
+                📍 Khu vực: {enterprise.serviceArea}
+              </span>
+            )}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {requests.map(req => (

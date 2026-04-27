@@ -22,6 +22,8 @@ export interface WeeklyDay {
   organic: number;
   recycle: number;
   hazardous: number;
+  electronic?: number;
+  bulky?: number;
 }
 
 export interface DashboardData {

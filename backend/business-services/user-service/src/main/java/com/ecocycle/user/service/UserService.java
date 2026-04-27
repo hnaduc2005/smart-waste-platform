@@ -101,6 +101,21 @@ public class UserService {
         } else if (profile instanceof EnterpriseProfile) {
             EnterpriseProfile ep = (EnterpriseProfile) profile;
             if (updates.containsKey("companyName")) ep.setCompanyName((String) updates.get("companyName"));
+            if (updates.containsKey("name")) ep.setCompanyName((String) updates.get("name")); // frontend uses "name"
+            if (updates.containsKey("licenseNumber")) ep.setLicenseNumber((String) updates.get("licenseNumber"));
+            if (updates.containsKey("dailyCapacity")) {
+                Object capacity = updates.get("dailyCapacity");
+                if (capacity instanceof Number) {
+                    ep.setDailyCapacity(((Number) capacity).doubleValue());
+                } else if (capacity instanceof String && !((String) capacity).isEmpty()) {
+                    ep.setDailyCapacity(Double.parseDouble((String) capacity));
+                }
+            }
+            if (updates.containsKey("serviceArea")) ep.setServiceArea((String) updates.get("serviceArea"));
+            if (updates.containsKey("acceptedWasteTypes")) ep.setAcceptedWasteTypes((String) updates.get("acceptedWasteTypes"));
+            if (updates.containsKey("phone")) ep.setPhone((String) updates.get("phone"));
+            if (updates.containsKey("email")) ep.setEmail((String) updates.get("email"));
+            if (updates.containsKey("address")) ep.setAddress((String) updates.get("address"));
         }
         
         return userProfileRepository.save(profile);

@@ -43,12 +43,12 @@ public interface WasteAnalyticsRepository extends JpaRepository<WasteAnalyticsRe
      * Trả về: [dayOfWeek(0=Sun..6=Sat), wasteType, totalWeight]
      */
     @Query(value =
-        "SELECT EXTRACT(DOW FROM event_timestamp)::int AS dayOfWeek, " +
+        "SELECT CAST(EXTRACT(DOW FROM event_timestamp) AS INTEGER) AS dayOfWeek, " +
         "       waste_type AS wasteType, " +
         "       SUM(weight) AS weight " +
         "FROM waste_analytics_records " +
         "WHERE event_timestamp >= :since " +
-        "GROUP BY EXTRACT(DOW FROM event_timestamp)::int, waste_type " +
+        "GROUP BY CAST(EXTRACT(DOW FROM event_timestamp) AS INTEGER), waste_type " +
         "ORDER BY dayOfWeek",
         nativeQuery = true)
     List<Object[]> findWeeklyStatsByType(@Param("since") LocalDateTime since);

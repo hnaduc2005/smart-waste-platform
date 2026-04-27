@@ -58,31 +58,38 @@ export const EnterpriseDashboardView = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
+      let enterpriseData: any = null;
+
+      // Load enterprise profile first to get serviceArea
+      if (user?.userId) {
+        try {
+          enterpriseData = await enterpriseApi.getMyEnterprise(user.userId);
+          setEnterprise(enterpriseData);
+          setCapForm({
+            name: enterpriseData.name || '',
+            address: enterpriseData.address || '',
+            licenseNumber: enterpriseData.licenseNumber || '',
+            dailyCapacity: String(enterpriseData.dailyCapacity || ''),
+            serviceArea: enterpriseData.serviceArea || '',
+            acceptedWasteTypes: enterpriseData.acceptedWasteTypes || '',
+            phone: enterpriseData.phone || '',
+            email: enterpriseData.email || '',
+          });
+        } catch { /* No enterprise registered yet */ }
+      }
+
+      // Lọc đơn theo khu vực phục vụ của doanh nghiệp
+      const serviceArea = enterpriseData?.serviceArea || '';
+      const districtParam = (serviceArea && serviceArea !== 'Toàn TP.HCM') ? serviceArea : undefined;
+
       const [reqs, cols, rules] = await Promise.allSettled([
-        collectionApi.getAllRequests(),
+        collectionApi.getAllRequests(undefined, districtParam),
         userApi.getCollectors(),
         enterpriseApi.getRewardRules(),
       ]);
       if (reqs.status === 'fulfilled') setAllRequests(reqs.value || []);
       if (cols.status === 'fulfilled') setCollectors(cols.value || []);
       if (rules.status === 'fulfilled') setRewardRules(rules.value || []);
-
-      if (user?.userId) {
-        try {
-          const ent = await enterpriseApi.getMyEnterprise(user.userId);
-          setEnterprise(ent);
-          setCapForm({
-            name: ent.name || '',
-            address: ent.address || '',
-            licenseNumber: ent.licenseNumber || '',
-            dailyCapacity: String(ent.dailyCapacity || ''),
-            serviceArea: ent.serviceArea || '',
-            acceptedWasteTypes: ent.acceptedWasteTypes || '',
-            phone: ent.phone || '',
-            email: ent.email || '',
-          });
-        } catch { /* No enterprise registered yet */ }
-      }
     } finally {
       setLoading(false);
     }
@@ -90,12 +97,16 @@ export const EnterpriseDashboardView = () => {
 
   useEffect(() => { fetchAll(); }, [user?.userId]);
 
-  // Refresh tracking every 15s
+  // Refresh tracking every 15s — chỉ lấy đơn trong khu vực phục vụ
   useEffect(() => {
     if (activeTab !== 'tracking') return;
-    const id = setInterval(() => collectionApi.getAllRequests().then(d => setAllRequests(d || [])), 15000);
+    const serviceArea = enterprise?.serviceArea;
+    const districtParam = (serviceArea && serviceArea !== 'Toàn TP.HCM') ? serviceArea : undefined;
+    const id = setInterval(() =>
+      collectionApi.getAllRequests(undefined, districtParam).then(d => setAllRequests(d || [])),
+    15000);
     return () => clearInterval(id);
-  }, [activeTab]);
+  }, [activeTab, enterprise]);
 
   // --- Actions ---
   const handleReject = async (reqId: string, citizenId: string) => {
@@ -121,14 +132,24 @@ export const EnterpriseDashboardView = () => {
   const handleSaveCapacity = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = { ...capForm, dailyCapacity: parseFloat(capForm.dailyCapacity) };
+      const payload = { ...capForm, dailyCapacity: parseFloat(capForm.dailyCapacity || '0') };
       if (enterprise?.id) {
         const updated = await enterpriseApi.updateEnterprise(enterprise.id, payload);
         setEnterprise(updated);
       } else {
-        const created = await enterpriseApi.createEnterprise(payload as any);
+        const created = await enterpriseApi.createEnterprise({ ...payload, ownerUserId: user?.userId } as any);
         setEnterprise(created);
       }
+      
+      // Đồng bộ thông tin cơ bản sang user_db (EnterpriseProfile)
+      if (user?.userId) {
+        try {
+          await userApi.updateProfile(user.userId, payload);
+        } catch (err) {
+          console.error("Lỗi đồng bộ sang user_db", err);
+        }
+      }
+
       showToast('success', '✅ Đã lưu thông tin doanh nghiệp');
     } catch { showToast('error', '❌ Không thể lưu thông tin'); }
   };
@@ -169,6 +190,31 @@ export const EnterpriseDashboardView = () => {
         <h2 style={{ fontSize:28, fontWeight:800, margin:0 }}>Quản lý Doanh nghiệp 🏭</h2>
         <p style={{ color:'var(--text-secondary)', margin:'8px 0 0' }}>Trung tâm điều phối và quản lý toàn bộ hoạt động thu gom rác thải.</p>
       </div>
+
+      {/* Service area banner */}
+      {enterprise && (
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 20px', background:'rgba(34,197,94,0.08)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:14, flexWrap:'wrap' }}>
+          <span style={{ fontSize:16 }}>📍</span>
+          <span style={{ fontWeight:700, color:'#34d399' }}>Khu vực phục vụ:</span>
+          <span style={{ background:'rgba(34,197,94,0.15)', color:'#4ade80', padding:'4px 14px', borderRadius:20, fontWeight:700, fontSize:14 }}>
+            {enterprise.serviceArea || '— Chưa cấu hình'}
+          </span>
+          {enterprise.acceptedWasteTypes && (
+            <>
+              <span style={{ color:'var(--text-muted)', fontSize:13 }}>·</span>
+              <span style={{ fontWeight:600, color:'var(--text-secondary)', fontSize:13 }}>Loại rác tiếp nhận:</span>
+              {enterprise.acceptedWasteTypes.split(',').map((t: string) => (
+                <span key={t} style={{ background:'rgba(99,102,241,0.15)', color:'#a5b4fc', padding:'3px 10px', borderRadius:20, fontSize:12, fontWeight:600 }}>
+                  {WASTE_LABELS[t.trim()]?.icon} {WASTE_LABELS[t.trim()]?.label || t.trim()}
+                </span>
+              ))}
+            </>
+          )}
+          {!enterprise.serviceArea && (
+            <span style={{ color:'#f59e0b', fontSize:13 }}>⚠️ Hãy cấu hình khu vực phục vụ ở tab <b>Năng lực</b> để hệ thống tự lọc đơn phù hợp.</span>
+          )}
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
@@ -308,17 +354,47 @@ export const EnterpriseDashboardView = () => {
               { key:'name', label:'Tên doanh nghiệp', colSpan:2 },
               { key:'licenseNumber', label:'Số giấy phép kinh doanh' },
               { key:'dailyCapacity', label:'Công suất (Tấn/ngày)', type:'number' },
-              { key:'serviceArea', label:'Khu vực phục vụ', colSpan:2 },
-              { key:'acceptedWasteTypes', label:'Loại rác tiếp nhận (vd: RECYCLABLE,ORGANIC)', colSpan:2 },
+              { key:'serviceArea', label:'Khu vực phục vụ', colSpan:2, type:'select', options: ['Toàn TP.HCM', 'Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 9', 'Quận 10', 'Quận 11', 'Quận 12', 'Quận Bình Thạnh', 'Quận Gò Vấp', 'Quận Phú Nhuận', 'Quận Tân Bình', 'Quận Tân Phú'] },
+              { key:'acceptedWasteTypes', label:'Loại rác tiếp nhận', colSpan:2, type:'checkboxes' },
               { key:'address', label:'Địa chỉ trụ sở', colSpan:2 },
               { key:'phone', label:'Điện thoại' },
               { key:'email', label:'Email' },
             ].map((f: any) => (
               <div key={f.key} style={{ gridColumn: f.colSpan === 2 ? 'span 2' : 'span 1' }}>
                 <label style={{ display:'block', fontSize:13, fontWeight:600, color:'var(--text-secondary)', marginBottom:6 }}>{f.label}</label>
-                <input type={f.type||'text'} value={(capForm as any)[f.key]}
-                  onChange={e => setCapForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  style={INPUT_STYLE} />
+                {f.type === 'select' ? (
+                  <select
+                    value={(capForm as any)[f.key]}
+                    onChange={e => setCapForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    style={{ ...INPUT_STYLE, color: (capForm as any)[f.key] ? 'white' : 'var(--text-secondary)' }}
+                  >
+                    <option value="">-- Chọn khu vực --</option>
+                    {f.options.map((opt: string) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : f.type === 'checkboxes' ? (
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {Object.keys(WASTE_LABELS).map(wt => {
+                      const isChecked = capForm.acceptedWasteTypes.includes(wt);
+                      return (
+                        <label key={wt} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-input)', padding:'8px 12px', borderRadius:8, cursor:'pointer', border: isChecked ? '1px solid var(--green-400)' : '1px solid var(--border)' }}>
+                          <input type="checkbox" checked={isChecked} onChange={e => {
+                            let current = capForm.acceptedWasteTypes ? capForm.acceptedWasteTypes.split(',').filter(Boolean) : [];
+                            if (e.target.checked) current.push(wt);
+                            else current = current.filter(x => x !== wt);
+                            setCapForm(p => ({ ...p, acceptedWasteTypes: current.join(',') }));
+                          }} />
+                          <span style={{ fontSize:14 }}>{WASTE_LABELS[wt].icon} {WASTE_LABELS[wt].label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <input type={f.type||'text'} value={(capForm as any)[f.key]}
+                    onChange={e => setCapForm(p => ({ ...p, [f.key]: e.target.value }))}
+                    style={INPUT_STYLE} />
+                )}
               </div>
             ))}
           </div>

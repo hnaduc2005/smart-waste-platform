@@ -24,15 +24,21 @@ public class RewardController {
     private final GlobalRewardRuleRepository globalRewardRuleRepository;
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
     private final UserServiceClient userServiceClient;
+    private final com.ecocycle.reward.service.EmailService emailService;
+
+    private final RestTemplate restTemplate;
 
     public RewardController(PointTransactionRepository pointTransactionRepository,
                             GlobalRewardRuleRepository globalRewardRuleRepository,
                             org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate,
-                            UserServiceClient userServiceClient) {
+                            UserServiceClient userServiceClient,
+                            com.ecocycle.reward.service.EmailService emailService) {
         this.pointTransactionRepository = pointTransactionRepository;
         this.globalRewardRuleRepository = globalRewardRuleRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.userServiceClient = userServiceClient;
+        this.emailService = emailService;
+        this.restTemplate = new RestTemplate();
     }
 
     private String fetchCitizenName(UUID citizenId) {
@@ -60,6 +66,7 @@ public class RewardController {
         List<PointTransaction> allTransactions = pointTransactionRepository.findAll();
 
         Map<UUID, Double> groupedByCitizen = allTransactions.stream()
+                .filter(t -> t.getAmount() > 0) // Chỉ tính điểm cộng (điểm tích lũy trọn đời)
                 .collect(Collectors.groupingBy(
                         PointTransaction::getCitizenId,
                         Collectors.summingDouble(PointTransaction::getAmount)
@@ -84,6 +91,66 @@ public class RewardController {
         return ResponseEntity.ok(history);
     }
 
+    @PostMapping("/redeem")
+    public ResponseEntity<?> redeemReward(@RequestBody Map<String, Object> body) {
+        try {
+            UUID citizenId = UUID.fromString(body.get("citizenId").toString());
+            double cost = Double.parseDouble(body.get("cost").toString());
+            String rewardTitle = body.get("rewardTitle").toString();
+
+            // Lấy tổng điểm hiện tại
+            List<PointTransaction> allTx = pointTransactionRepository.findByCitizenIdOrderByCreatedAtDesc(citizenId);
+            double currentPoints = allTx.stream().mapToDouble(PointTransaction::getAmount).sum();
+
+            if (currentPoints < cost) {
+                return ResponseEntity.badRequest().body("Số điểm không đủ!");
+            }
+
+            // Ghi nhận giao dịch trừ điểm
+            PointTransaction spendTx = new PointTransaction();
+            spendTx.setCitizenId(citizenId);
+            spendTx.setAmount(-cost);
+            spendTx.setReason("Đổi quà: " + rewardTitle);
+            pointTransactionRepository.save(spendTx);
+
+            // Fetch citizen email using user-service
+            String url = "http://ecocycle-user:8082/api/v1/users/" + citizenId;
+            Map<?, ?> profile = restTemplate.getForObject(url, Map.class);
+            if (profile != null) {
+                Object emailObj = profile.get("email");
+                Object nameObj = profile.get("fullName");
+                if (emailObj != null && !emailObj.toString().isBlank()) {
+                    String email = emailObj.toString();
+                    String name = nameObj != null ? nameObj.toString() : "Citizen";
+                    emailService.sendRewardEmail(email, name, rewardTitle);
+                } else {
+                    log.warn("Citizen {} does not have an email. Cannot send reward email.", citizenId);
+                }
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Đổi thưởng thành công!"));
+        } catch (Exception e) {
+            log.error("Error redeeming reward: ", e);
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi đổi thưởng.");
+        }
+    }
+
+    // --- API DÀNH RIÊNG CHO VIỆC TEST --- //
+
+    @PostMapping("/mock-event")
+    public ResponseEntity<String> mockGenerateCollectionEvent() {
+        com.ecocycle.common.events.CollectionCompletedEvent mockEvent = com.ecocycle.common.events.CollectionCompletedEvent.builder()
+                .wasteRequestId(java.util.UUID.randomUUID().toString())
+                .citizenId(java.util.UUID.randomUUID().toString())
+                .collectorId(java.util.UUID.randomUUID().toString())
+                .wasteType("RECYCLABLE")
+                .weightInKg(5.5)
+                .completedAt(java.time.Instant.now())
+                .build();
+
+        kafkaTemplate.send("waste.collection.completed", mockEvent);
+        return ResponseEntity.ok("Mô phỏng thành công!");
+    }
     // --- REWARD RULES (Enterprise Config) --- //
 
     /** GET /api/v1/rewards/rules — Lấy tất cả quy tắc điểm thưởng */

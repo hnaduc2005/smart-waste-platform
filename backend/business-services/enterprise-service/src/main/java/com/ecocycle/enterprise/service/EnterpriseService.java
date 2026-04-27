@@ -41,6 +41,7 @@ public class EnterpriseService {
     public Optional<Enterprise> updateEnterprise(Long id, Enterprise updated) {
         return enterpriseRepository.findById(id).map(existing -> {
             existing.setName(updated.getName());
+            existing.setLicenseNumber(updated.getLicenseNumber());
             existing.setAddress(updated.getAddress());
             existing.setPhone(updated.getPhone());
             existing.setEmail(updated.getEmail());

@@ -42,6 +42,10 @@ public class WasteRequest {
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;
 
+    /** Tên quận/huyện, được tự động parse từ location khi tạo đơn */
+    @Column(name = "district")
+    private String district;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

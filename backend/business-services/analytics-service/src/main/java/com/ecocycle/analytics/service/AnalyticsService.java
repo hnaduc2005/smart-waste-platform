@@ -74,9 +74,11 @@ public class AnalyticsService {
         for (int dow : DAY_ORDER) {
             Map<String, Object> day = new LinkedHashMap<>();
             day.put("name", DAY_LABEL_VI.get(dow));
-            day.put("organic",   0.0);
-            day.put("recycle",   0.0);
-            day.put("hazardous", 0.0);
+            day.put("organic",    0.0);
+            day.put("recycle",    0.0);
+            day.put("hazardous",  0.0);
+            day.put("electronic", 0.0);
+            day.put("bulky",      0.0);
             weeklyMap.put(dow, day);
         }
 
@@ -86,9 +88,11 @@ public class AnalyticsService {
             double weight = row[2] != null ? ((Number) row[2]).doubleValue() : 0.0;
             Map<String, Object> dayEntry = weeklyMap.get(dow);
             if (dayEntry == null) continue;
-            if ("ORGANIC".equalsIgnoreCase(wasteType))         dayEntry.put("organic",   weight);
-            else if ("RECYCLABLE".equalsIgnoreCase(wasteType)) dayEntry.put("recycle",   weight);
-            else if ("HAZARDOUS".equalsIgnoreCase(wasteType))  dayEntry.put("hazardous", weight);
+            if ("ORGANIC".equalsIgnoreCase(wasteType))         dayEntry.put("organic",    weight);
+            else if ("RECYCLABLE".equalsIgnoreCase(wasteType)) dayEntry.put("recycle",    weight);
+            else if ("HAZARDOUS".equalsIgnoreCase(wasteType))  dayEntry.put("hazardous",  weight);
+            else if ("ELECTRONIC".equalsIgnoreCase(wasteType)) dayEntry.put("electronic", weight);
+            else if ("BULKY".equalsIgnoreCase(wasteType))      dayEntry.put("bulky",      weight);
         }
 
         List<Map<String, Object>> weeklyList = new ArrayList<>(weeklyMap.values());

@@ -140,17 +140,7 @@ export const CitizenRequestView = () => {
       setType('RECYCLABLE');
       fetchRequests(); // reload list
       
-      // Khởi tạo thông báo cho Doanh nghiệp
-      try {
-        await notificationApi.create({
-          targetRole: 'ENTERPRISE',
-          title: '🚨 Yêu cầu thu gom rác mới!',
-          message: `Một người dân vừa gửi yêu cầu dọn rác tại tọa độ: ${location.substring(0, 20)}... Hãy mở Bản đồ để điều phối ngay!`,
-          type: 'SYSTEM',
-          isRead: false
-        });
-      } catch(err) {}
-      
+
       setSubmitting(false);
     }
   };

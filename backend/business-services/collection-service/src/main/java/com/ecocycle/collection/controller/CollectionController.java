@@ -6,6 +6,7 @@ import com.ecocycle.collection.domain.models.WasteRequest;
 import com.ecocycle.collection.dto.AssignTaskDto;
 import com.ecocycle.collection.dto.ConfirmCollectionDto;
 import com.ecocycle.collection.dto.CreateWasteRequestDto;
+import com.ecocycle.collection.repository.WasteRequestRepository;
 import com.ecocycle.collection.service.CollectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class CollectionController {
 
     private final CollectionService collectionService;
+    private final WasteRequestRepository requestRepository;
 
     // --- Citizen APIs ---
     @PostMapping({"/requests", "/request"})
@@ -57,7 +59,26 @@ public class CollectionController {
 
     @GetMapping("/requests")
     public ResponseEntity<List<WasteRequest>> getAllRequests(
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String district) {
+
+        // Nếu có lọc district
+        if (district != null && !district.isBlank()) {
+            List<String> districts = List.of(district.split(","));
+            if (status != null) {
+                try {
+                    com.ecocycle.collection.domain.enums.RequestStatus s =
+                        com.ecocycle.collection.domain.enums.RequestStatus.valueOf(status);
+                    return ResponseEntity.ok(
+                        requestRepository.findByStatusAndDistrictIn(s, districts));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            return ResponseEntity.ok(requestRepository.findByDistrictIn(districts));
+        }
+
+        // Không có district → filter theo status hoặc lấy tất cả
         if (status != null) {
             try {
                 com.ecocycle.collection.domain.enums.RequestStatus s =

@@ -38,6 +38,24 @@ public class NotificationController {
         return ResponseEntity.ok(saved);
     }
 
+    /** Endpoint nội bộ: nhận userId dạng String, không cần JWT — dùng cho inter-service call */
+    @PostMapping("/internal")
+    public ResponseEntity<Notification> createInternal(@RequestBody java.util.Map<String, Object> body) {
+        System.out.println("RECEIVED INTERNAL NOTIFICATION: " + body);
+        Notification n = new Notification();
+        try {
+            Object uid = body.get("userId");
+            if (uid != null) n.setUserId(UUID.fromString(uid.toString()));
+        } catch (Exception e) {
+            System.err.println("FAILED TO PARSE UUID: " + e.getMessage());
+        }
+        n.setTitle(String.valueOf(body.getOrDefault("title", "Thông báo")));
+        n.setMessage(String.valueOf(body.getOrDefault("message", "")));
+        n.setType(String.valueOf(body.getOrDefault("type", "SYSTEM")));
+        n.setIsRead(false);
+        return ResponseEntity.ok(notificationRepository.save(n));
+    }
+
     @PatchMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable UUID id) {
         notificationRepository.findById(id).ifPresent(n -> {

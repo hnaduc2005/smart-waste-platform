@@ -12,4 +12,8 @@ import java.util.UUID;
 public interface WasteRequestRepository extends JpaRepository<WasteRequest, UUID> {
     List<WasteRequest> findByCitizenId(UUID citizenId);
     List<WasteRequest> findByStatus(RequestStatus status);
+    List<WasteRequest> findByDistrict(String district);
+    List<WasteRequest> findByStatusAndDistrict(RequestStatus status, String district);
+    List<WasteRequest> findByDistrictIn(List<String> districts);
+    List<WasteRequest> findByStatusAndDistrictIn(RequestStatus status, List<String> districts);
 }

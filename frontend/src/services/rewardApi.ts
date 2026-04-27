@@ -34,4 +34,7 @@ export const rewardApi = {
     
   getHistory: (citizenId: string): Promise<RewardHistory[]> => 
     api.get(`/${citizenId}/history`).then(res => res.data),
+
+  redeemReward: (data: { citizenId: string, cost: number, rewardTitle: string }): Promise<any> =>
+    api.post('/redeem', data).then(res => res.data),
 };

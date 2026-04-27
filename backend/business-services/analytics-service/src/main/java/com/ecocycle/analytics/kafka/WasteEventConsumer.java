@@ -51,15 +51,58 @@ public class WasteEventConsumer {
             com.ecocycle.common.events.CollectionCompletedEvent event = objectMapper.readValue(messagePayload, com.ecocycle.common.events.CollectionCompletedEvent.class);
             WasteAnalyticsRecord record = new WasteAnalyticsRecord();
             record.setEventType("COLLECTED");
-            record.setDistrict("Unknown"); // District not in event currently
+
+            // Dùng district từ event (đã được tính từ collection-service); fallback "TP.HCM"
+            String district = event.getDistrict();
+            if (district == null || district.isBlank() || "Unknown".equalsIgnoreCase(district)) {
+                // Thử parse lại từ location nếu có
+                String loc = event.getLocation();
+                if (loc != null && !loc.isBlank()) {
+                    district = parseDistrictFromLocation(loc);
+                } else {
+                    district = "TP.HCM";
+                }
+            }
+            record.setDistrict(district);
             record.setWasteType(event.getWasteType() != null ? event.getWasteType() : "MIXED");
             record.setWeight(event.getWeightInKg() != null ? event.getWeightInKg() : 0.0);
             record.setEventTimestamp(LocalDateTime.now());
             record.setUserId(event.getCitizenId());
             repository.save(record);
-            log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện thu gom rác. ID={}, CitizenID={}", record.getId(), record.getUserId());
+            log.info("✅ Đã lưu WasteAnalyticsRecord từ sự kiện thu gom rác. ID={}, CitizenID={}, District={}", record.getId(), record.getUserId(), district);
         } catch (Exception e) {
             log.error("❌ Lỗi khi phân tích sự kiện waste.collection.completed: {}", e.getMessage());
         }
+    }
+
+    /** Fallback: parse district từ location string trong analytics-service */
+    private String parseDistrictFromLocation(String location) {
+        if (location.matches("^[0-9.,\\s]+$")) {
+            try {
+                String[] parts = location.split(",");
+                if (parts.length >= 2) {
+                    double lat = Double.parseDouble(parts[0].trim());
+                    double lng = Double.parseDouble(parts[1].trim());
+                    // Bảng bounding box các quận TP.HCM
+                    if (lat >= 10.775 && lat <= 10.790 && lng >= 106.695 && lng <= 106.710) return "Quận 1";
+                    if (lat >= 10.760 && lat <= 10.780 && lng >= 106.720 && lng <= 106.760) return "Quận 2";
+                    if (lat >= 10.782 && lat <= 10.800 && lng >= 106.680 && lng <= 106.700) return "Quận 3";
+                    if (lat >= 10.748 && lat <= 10.765 && lng >= 106.700 && lng <= 106.720) return "Quận 4";
+                    if (lat >= 10.750 && lat <= 10.775 && lng >= 106.656 && lng <= 106.680) return "Quận 5";
+                    if (lat >= 10.800 && lat <= 10.840 && lng >= 106.700 && lng <= 106.730) return "Bình Thạnh";
+                    if (lat >= 10.820 && lat <= 10.860 && lng >= 106.655 && lng <= 106.690) return "Gò Vấp";
+                    if (lat >= 10.790 && lat <= 10.810 && lng >= 106.678 && lng <= 106.700) return "Phú Nhuận";
+                    if (lat >= 10.790 && lat <= 10.820 && lng >= 106.630 && lng <= 106.660) return "Tân Bình";
+                    if (lat >= 10.780 && lat <= 10.810 && lng >= 106.595 && lng <= 106.632) return "Tân Phú";
+                }
+            } catch (NumberFormatException ignored) {}
+            return "TP.HCM";
+        }
+        // Địa chỉ text
+        String lc = location.toLowerCase();
+        for (String kw : new String[]{"quận 1","quận 2","quận 3","quận 4","quận 5","quận 6","quận 7","quận 8","quận 9","quận 10","quận 11","quận 12","bình thạnh","gò vấp","phú nhuận","tân bình","tân phú"}) {
+            if (lc.contains(kw)) return Character.toUpperCase(kw.charAt(0)) + kw.substring(1);
+        }
+        return "TP.HCM";
     }
 }

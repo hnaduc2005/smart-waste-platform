@@ -38,19 +38,49 @@ export const RewardView = () => {
   const [collectorName, setCollectorName] = useState<string>('Người thu gom');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
-  const handleRedeem = (cost: number) => {
+  const handleRedeem = async (cost: number, title: string) => {
     setErrorMsg('');
     if (currentPoints < cost) {
       setErrorMsg(`Rất tiếc! Bạn cần thêm ${(cost - currentPoints).toLocaleString()} EcoP nữa để đổi phần quà này.`);
       return;
     }
-    setRedeemSuccess(true);
-    setTimeout(() => {
-      setRedeemSuccess(false);
-      setIsModalOpen(false);
-      // Giả lập trừ điểm
+    
+    if (!user?.userId) return;
+
+    try {
+      await rewardApi.redeemReward({
+        citizenId: user.userId,
+        cost: cost,
+        rewardTitle: title
+      });
+      
+      setRedeemSuccess(true);
       setCurrentPoints(prev => Math.max(0, prev - cost));
-    }, 2000);
+      
+      // Reload history to show the new transaction
+      rewardApi.getHistory(user.userId).then(res => {
+         // ... we will let the existing useEffect handle it if we triggered a reload state, 
+         // but for simplicity we can just wait for next page refresh or update the state manually.
+         // Let's just do a manual prepend to transactions for immediate feedback.
+         const newTx: Transaction = {
+           id: Date.now(),
+           title: `Đổi quà: ${title}`,
+           weight: "",
+           points: `-${cost}`,
+           date: new Date().toLocaleDateString('vi-VN'),
+           type: 'spend'
+         };
+         setTransactions(prev => [newTx, ...prev]);
+      });
+
+      setTimeout(() => {
+        setRedeemSuccess(false);
+        setIsModalOpen(false);
+      }, 3000);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg("Lỗi khi đổi thưởng: " + (err.response?.data || "Vui lòng thử lại"));
+    }
   };
 
   useEffect(() => {
@@ -362,7 +392,7 @@ export const RewardView = () => {
                   ].map(item => (
                     <div 
                       key={item.id} 
-                      onClick={() => handleRedeem(item.cost)}
+                      onClick={() => handleRedeem(item.cost, item.title)}
                       style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, cursor: 'pointer' }}
                     >
                       <div style={{ fontSize: 24 }}>{item.icon}</div>
