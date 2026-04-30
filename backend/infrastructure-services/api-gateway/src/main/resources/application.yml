@@ -80,6 +80,7 @@ spring:
               args:
                 allowedRoles:
                   - ENTERPRISE
+                  - COLLECTOR
 
         - id: vehicle-service-route
           uri: lb://enterprise-service

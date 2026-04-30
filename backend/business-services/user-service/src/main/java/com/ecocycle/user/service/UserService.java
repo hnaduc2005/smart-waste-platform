@@ -83,6 +83,10 @@ public class UserService {
         return userProfileRepository.findByRole(Role.COLLECTOR);
     }
 
+    public java.util.List<UserProfileBase> getEnterprises() {
+        return userProfileRepository.findByRole(Role.ENTERPRISE);
+    }
+
     @Transactional
     public UserProfileBase updateProfile(UUID userId, Map<String, Object> updates) {
         UserProfileBase profile = getUserProfile(userId);
@@ -98,6 +102,7 @@ public class UserService {
             if (updates.containsKey("isOnline")) cp.setIsOnline((Boolean) updates.get("isOnline"));
             if (updates.containsKey("latitude")) cp.setLatitude(((Number) updates.get("latitude")).doubleValue());
             if (updates.containsKey("longitude")) cp.setLongitude(((Number) updates.get("longitude")).doubleValue());
+            if (updates.containsKey("companyName")) cp.setCompanyName((String) updates.get("companyName"));
         } else if (profile instanceof EnterpriseProfile) {
             EnterpriseProfile ep = (EnterpriseProfile) profile;
             if (updates.containsKey("companyName")) ep.setCompanyName((String) updates.get("companyName"));

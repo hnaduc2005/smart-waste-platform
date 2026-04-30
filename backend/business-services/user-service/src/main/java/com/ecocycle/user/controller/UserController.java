@@ -34,6 +34,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getCollectors());
     }
 
+    @GetMapping("/enterprises")
+    public ResponseEntity<java.util.List<UserProfileBase>> getEnterprises() {
+        return ResponseEntity.ok(userService.getEnterprises());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<UserProfileBase> updateUserProfile(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
         UserProfileBase updatedProfile = userService.updateProfile(id, updates);

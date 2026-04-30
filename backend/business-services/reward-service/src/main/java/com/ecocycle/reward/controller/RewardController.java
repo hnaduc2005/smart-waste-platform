@@ -8,7 +8,7 @@ import com.ecocycle.reward.repository.PointTransactionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+
 
 import java.util.List;
 import java.util.Map;
@@ -25,21 +25,21 @@ public class RewardController {
     private final GlobalRewardRuleRepository globalRewardRuleRepository;
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
     private final UserServiceClient userServiceClient;
+    private final com.ecocycle.reward.client.AuthServiceClient authServiceClient;
     private final com.ecocycle.reward.service.EmailService emailService;
-
-    private final RestTemplate restTemplate;
 
     public RewardController(PointTransactionRepository pointTransactionRepository,
                             GlobalRewardRuleRepository globalRewardRuleRepository,
                             org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate,
                             UserServiceClient userServiceClient,
+                            com.ecocycle.reward.client.AuthServiceClient authServiceClient,
                             com.ecocycle.reward.service.EmailService emailService) {
         this.pointTransactionRepository = pointTransactionRepository;
         this.globalRewardRuleRepository = globalRewardRuleRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.userServiceClient = userServiceClient;
+        this.authServiceClient = authServiceClient;
         this.emailService = emailService;
-        this.restTemplate = new RestTemplate();
     }
 
     private String fetchCitizenName(UUID citizenId) {
@@ -114,19 +114,20 @@ public class RewardController {
             spendTx.setReason("Đổi quà: " + rewardTitle);
             pointTransactionRepository.save(spendTx);
 
-            // Fetch citizen email using user-service
-            String url = "http://ecocycle-user:8082/api/v1/users/" + citizenId;
-            Map<?, ?> profile = restTemplate.getForObject(url, Map.class);
-            if (profile != null) {
-                Object emailObj = profile.get("email");
-                Object nameObj = profile.get("fullName");
-                if (emailObj != null && !emailObj.toString().isBlank()) {
-                    String email = emailObj.toString();
-                    String name = nameObj != null ? nameObj.toString() : "Citizen";
+            // Fetch citizen name
+            String name = fetchCitizenName(citizenId);
+            
+            // Fetch citizen email from auth-service
+            try {
+                Map<String, String> authData = authServiceClient.getUserEmail(citizenId);
+                if (authData != null && authData.containsKey("email")) {
+                    String email = authData.get("email");
                     emailService.sendRewardEmail(email, name, rewardTitle);
                 } else {
-                    log.warn("Citizen {} does not have an email. Cannot send reward email.", citizenId);
+                    log.warn("Citizen {} does not have an email in auth-service. Cannot send reward email.", citizenId);
                 }
+            } catch (Exception e) {
+                log.error("Failed to fetch email for user {} from auth-service: {}", citizenId, e.getMessage());
             }
 
             return ResponseEntity.ok(Map.of("message", "Đổi thưởng thành công!"));

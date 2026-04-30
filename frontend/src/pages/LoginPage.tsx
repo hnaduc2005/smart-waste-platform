@@ -10,7 +10,7 @@ import Button from '../components/Button';
 
 const BRAND_STATS = [
   { value: '12K+', label: 'Người dùng' },
-  { value: '98T',  label: 'Rác tái chế/tháng' },
+  { value: '98T', label: 'Rác tái chế/tháng' },
   { value: '340+', label: 'Doanh nghiệp' },
 ];
 const BRAND_FEATURES = [
@@ -28,9 +28,9 @@ interface ToastData {
 }
 
 const TOAST_STYLES = {
-  success: { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.4)',  color: '#86efac' },
-  error:   { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.4)',  color: '#fca5a5' },
-  loading: { bg: 'rgba(234,179,8,0.10)',  border: 'rgba(234,179,8,0.4)',  color: '#fde68a' },
+  success: { bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.4)', color: '#86efac' },
+  error: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.4)', color: '#fca5a5' },
+  loading: { bg: 'rgba(234,179,8,0.10)', border: 'rgba(234,179,8,0.4)', color: '#fde68a' },
 };
 
 function LoginToast({ toast, onClose }: { toast: ToastData; onClose: () => void }) {
@@ -76,7 +76,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [form, setForm]   = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<ToastData>({ type: '', msg: '' });
   const [loading, setLoading] = useState(false);
@@ -92,7 +92,7 @@ export default function LoginPage() {
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.username.trim()) errs.username = 'Vui lòng nhập username';
-    if (!form.password)        errs.password = 'Vui lòng nhập mật khẩu';
+    if (!form.password) errs.password = 'Vui lòng nhập mật khẩu';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -106,9 +106,15 @@ export default function LoginPage() {
     setToast({ type: 'loading', msg: 'Đang xác thực tài khoản, vui lòng chờ...' });
 
     try {
-      await login({ username: form.username, password: form.password });
-      setToast({ type: 'success', msg: '🎉 Đăng nhập thành công! Đang chuyển hướng đến Dashboard...' });
-      setTimeout(() => navigate('/dashboard'), 1200);
+      const userData = await login({ username: form.username, password: form.password });
+      setToast({ type: 'success', msg: 'Đăng nhập thành công! Đang chuyển hướng...' });
+      setTimeout(() => {
+        if (userData && userData.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1200);
     } catch (err: any) {
       const { message, status } = extractError(err);
       if (status === 401) {

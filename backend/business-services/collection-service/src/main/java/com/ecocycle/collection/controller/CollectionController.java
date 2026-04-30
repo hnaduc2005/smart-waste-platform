@@ -64,7 +64,22 @@ public class CollectionController {
 
         // Nếu có lọc district
         if (district != null && !district.isBlank()) {
-            List<String> districts = List.of(district.split(","));
+            // Normalize: "Quận Bình Thạnh" -> "Bình Thạnh", nhưng "Quận 1" giữ nguyên
+            List<String> rawDistricts = List.of(district.split(","));
+            List<String> districts = rawDistricts.stream()
+                .map(String::trim)
+                .flatMap(d -> {
+                    // Tạo cả 2 biến thể: có và không có "Quận " prefix để match linh hoạt
+                    java.util.Set<String> variants = new java.util.LinkedHashSet<>();
+                    variants.add(d);
+                    if (d.startsWith("Quận ") && !d.matches("Quận \\d+")) {
+                        variants.add(d.substring(5)); // "Quận Bình Thạnh" -> "Bình Thạnh"
+                    } else if (!d.startsWith("Quận ") && !d.matches("\\d+")) {
+                        variants.add("Quận " + d); // "Bình Thạnh" -> "Quận Bình Thạnh"
+                    }
+                    return variants.stream();
+                })
+                .collect(java.util.stream.Collectors.toList());
             if (status != null) {
                 try {
                     com.ecocycle.collection.domain.enums.RequestStatus s =

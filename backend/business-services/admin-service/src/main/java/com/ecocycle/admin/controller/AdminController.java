@@ -40,11 +40,13 @@ public class AdminController {
 
         // WasteCollected: sum from dashboardData
         double totalWaste = 0.0;
-        if (dashboardData.get("districts") instanceof List districts) {
+        if (dashboardData.get("districts") instanceof List<?> districts) {
             totalWaste = districts.stream().mapToDouble(d -> {
-                Map<String, Object> districtMap = (Map<String, Object>) d;
-                Object val = districtMap.get("total");
-                return val != null ? Double.parseDouble(val.toString()) : 0.0;
+                if (d instanceof Map<?, ?> districtMap) {
+                    Object val = districtMap.get("total");
+                    return val != null ? Double.parseDouble(val.toString()) : 0.0;
+                }
+                return 0.0;
             }).sum();
         }
 

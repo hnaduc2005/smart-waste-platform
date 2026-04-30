@@ -16,10 +16,12 @@ function PrivateRoute({ children }: { children: ReactNode }) {
   return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-/** Route guard: redirect to /dashboard if already logged in */
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
-  const { isLoggedIn } = useAuth();
-  return isLoggedIn ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+  const { isLoggedIn, user } = useAuth();
+  if (isLoggedIn) {
+    return user?.role === 'ADMIN' ? <Navigate to="/admin" replace /> : <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
 }
 
 export default function App() {

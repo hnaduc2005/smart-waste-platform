@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Medal, Star, Flame, History, ChevronRight, CheckCircle2, X } from 'lucide-react';
+import { Trophy, Medal, Star, Flame, History, ChevronRight, CheckCircle2, X, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import FeedbackModal from '../components/common/FeedbackModal';
 import { useAuth } from '../context/AuthContext';
@@ -32,15 +32,40 @@ export default function GamificationPage() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
-  const handleRedeem = () => {
-    setRedeemSuccess(true);
-    setTimeout(() => {
-      setRedeemSuccess(false);
-      setIsModalOpen(false);
-      // Giả lập trừ điểm
-      setCurrentPoints(prev => Math.max(0, prev - 500));
-    }, 2000);
+  const handleRedeem = (cost: number, title: string) => {
+    if (!user?.userId) return;
+    if (currentPoints < cost) {
+      alert("Không đủ điểm để đổi!");
+      return;
+    }
+
+    setIsRedeeming(true);
+    
+    const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+    const apiCall = rewardApi.redeemReward({
+      citizenId: user.userId,
+      cost: cost,
+      rewardTitle: title
+    });
+
+    Promise.all([apiCall, minDelay])
+      .then(() => {
+        setRedeemSuccess(true);
+        setTimeout(() => {
+          setRedeemSuccess(false);
+          setIsModalOpen(false);
+          setCurrentPoints(prev => Math.max(0, prev - cost));
+        }, 2000);
+      })
+      .catch(err => {
+        console.error("Lỗi khi đổi quà:", err);
+        alert("Đã xảy ra lỗi khi đổi quà. Vui lòng thử lại.");
+      })
+      .finally(() => {
+        setIsRedeeming(false);
+      });
   };
 
   useEffect(() => {
@@ -49,7 +74,7 @@ export default function GamificationPage() {
       .then(res => {
         const leaderData: TopUser[] = res.map((u, idx) => ({
           rank: u.rank || idx + 1,
-          name: u.username || `User ${u.citizenId.substring(0,6)}`,
+          name: u.citizenName || `User ${u.citizenId.substring(0,6)}`,
           points: u.totalPoints || 0,
           avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${u.citizenId}`
         }));
@@ -66,15 +91,15 @@ export default function GamificationPage() {
         .then(res => {
           const txData: Transaction[] = res.map((item, idx) => ({
             id: Number(item.id) || idx,
-            title: item.reason || (item.points > 0 ? "Nhận thưởng thu gom" : "Quy đổi điểm"),
+            title: item.reason || (item.amount > 0 ? "Nhận thưởng thu gom" : "Quy đổi điểm"),
             weight: "", 
-            points: item.points > 0 ? `+${item.points}` : `${item.points}`,
+            points: item.amount > 0 ? `+${item.amount}` : `${item.amount}`,
             date: new Date(item.createdAt).toLocaleDateString('vi-VN'),
-            type: item.points > 0 ? 'earn' : 'spend'
+            type: item.amount > 0 ? 'earn' : 'spend'
           }));
           setTransactions(txData);
 
-          const total = res.reduce((acc, curr) => acc + curr.points, 0);
+          const total = res.reduce((acc, curr) => acc + curr.amount, 0);
           setCurrentPoints(total);
         })
         .catch((err) => {
@@ -284,7 +309,15 @@ export default function GamificationPage() {
                 <X size={24} />
               </button>
               
-              {redeemSuccess ? (
+              {isRedeeming ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                    <Loader2 size={48} color="#10b981" style={{ animation: 'spin 1s linear infinite' }} />
+                  </div>
+                  <h3 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 12px' }}>Đang xử lý đổi quà...</h3>
+                  <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Vui lòng đợi giây lát, hệ thống đang xử lý và gửi email voucher cho bạn.</p>
+                </div>
+              ) : redeemSuccess ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{ width: 80, height: 80, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                     <CheckCircle2 size={48} color="#10b981" />
@@ -305,7 +338,7 @@ export default function GamificationPage() {
                     ].map(item => (
                       <div 
                         key={item.id} 
-                        onClick={handleRedeem}
+                        onClick={() => handleRedeem(item.cost, item.title)}
                         style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16, cursor: 'pointer' }}
                       >
                         <div style={{ fontSize: 24 }}>{item.icon}</div>
@@ -325,7 +358,7 @@ export default function GamificationPage() {
             </div>
           </div>
         )}
-        <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }`}</style>
+        <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} } @keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
   );

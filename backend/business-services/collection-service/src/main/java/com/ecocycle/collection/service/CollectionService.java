@@ -378,26 +378,35 @@ public class CollectionService {
         }
     }
 
-    /** Ánh xạ toạ độ tới tên quận/huyện TP.HCM theo bounding box đơn giản */
+    /** Ánh xạ toạ độ tới tên quận/huyện TP.HCM theo bounding box mở rộng, phủ toàn bộ thành phố */
     private String mapCoordsToDistrict(double lat, double lng) {
-        if (lat >= 10.775 && lat <= 10.790 && lng >= 106.695 && lng <= 106.710) return "Quận 1";
-        if (lat >= 10.760 && lat <= 10.780 && lng >= 106.720 && lng <= 106.760) return "Quận 2";
-        if (lat >= 10.782 && lat <= 10.800 && lng >= 106.680 && lng <= 106.700) return "Quận 3";
-        if (lat >= 10.748 && lat <= 10.765 && lng >= 106.700 && lng <= 106.720) return "Quận 4";
-        if (lat >= 10.750 && lat <= 10.775 && lng >= 106.656 && lng <= 106.680) return "Quận 5";
-        if (lat >= 10.735 && lat <= 10.755 && lng >= 106.625 && lng <= 106.660) return "Quận 6";
-        if (lat >= 10.720 && lat <= 10.750 && lng >= 106.700 && lng <= 106.730) return "Quận 7";
-        if (lat >= 10.720 && lat <= 10.745 && lng >= 106.620 && lng <= 106.660) return "Quận 8";
-        if (lat >= 10.830 && lat <= 10.870 && lng >= 106.730 && lng <= 106.780) return "Quận 9";
-        if (lat >= 10.770 && lat <= 10.790 && lng >= 106.657 && lng <= 106.680) return "Quận 10";
-        if (lat >= 10.755 && lat <= 10.780 && lng >= 106.636 && lng <= 106.660) return "Quận 11";
-        if (lat >= 10.845 && lat <= 10.870 && lng >= 106.680 && lng <= 106.710) return "Quận 12";
-        if (lat >= 10.800 && lat <= 10.840 && lng >= 106.700 && lng <= 106.730) return "Bình Thạnh";
-        if (lat >= 10.820 && lat <= 10.860 && lng >= 106.655 && lng <= 106.690) return "Gò Vấp";
-        if (lat >= 10.790 && lat <= 10.810 && lng >= 106.678 && lng <= 106.700) return "Phú Nhuận";
-        if (lat >= 10.790 && lat <= 10.820 && lng >= 106.630 && lng <= 106.660) return "Tân Bình";
-        if (lat >= 10.780 && lat <= 10.810 && lng >= 106.595 && lng <= 106.632) return "Tân Phú";
-        if (lat >= 10.700 && lat <= 10.740 && lng >= 106.580 && lng <= 106.625) return "Bình Tân";
+        // Quận nội thành (mở rộng bounding box để khớp thực tế GPS)
+        if (lat >= 10.768 && lat <= 10.795 && lng >= 106.688 && lng <= 106.715) return "Quận 1";
+        if (lat >= 10.755 && lat <= 10.800 && lng >= 106.715 && lng <= 106.780) return "Quận 2";
+        if (lat >= 10.778 && lat <= 10.805 && lng >= 106.672 && lng <= 106.700) return "Quận 3";
+        if (lat >= 10.740 && lat <= 10.772 && lng >= 106.692 && lng <= 106.728) return "Quận 4";
+        if (lat >= 10.745 && lat <= 10.780 && lng >= 106.648 && lng <= 106.685) return "Quận 5";
+        if (lat >= 10.728 && lat <= 10.760 && lng >= 106.615 && lng <= 106.665) return "Quận 6";
+        if (lat >= 10.710 && lat <= 10.758 && lng >= 106.690 && lng <= 106.745) return "Quận 7";
+        if (lat >= 10.712 && lat <= 10.752 && lng >= 106.605 && lng <= 106.668) return "Quận 8";
+        if (lat >= 10.820 && lat <= 10.900 && lng >= 106.720 && lng <= 106.810) return "Quận 9";
+        if (lat >= 10.762 && lat <= 10.797 && lng >= 106.648 && lng <= 106.690) return "Quận 10";
+        if (lat >= 10.748 && lat <= 10.785 && lng >= 106.625 && lng <= 106.668) return "Quận 11";
+        if (lat >= 10.832 && lat <= 10.895 && lng >= 106.668 && lng <= 106.720) return "Quận 12";
+        // Quận ngoại thành / huyện
+        if (lat >= 10.795 && lat <= 10.845 && lng >= 106.690 && lng <= 106.745) return "Bình Thạnh";
+        if (lat >= 10.808 && lat <= 10.870 && lng >= 106.638 && lng <= 106.700) return "Gò Vấp";
+        if (lat >= 10.782 && lat <= 10.808 && lng >= 106.670 && lng <= 106.700) return "Phú Nhuận";
+        if (lat >= 10.785 && lat <= 10.832 && lng >= 106.618 && lng <= 106.668) return "Tân Bình";
+        if (lat >= 10.772 && lat <= 10.820 && lng >= 106.578 && lng <= 106.625) return "Tân Phú";
+        if (lat >= 10.685 && lat <= 10.745 && lng >= 106.560 && lng <= 106.628) return "Bình Tân";
+        if (lat >= 10.820 && lat <= 10.920 && lng >= 106.755 && lng <= 106.850) return "Thủ Đức";
+        if (lat >= 10.860 && lat <= 10.990 && lng >= 106.590 && lng <= 106.700) return "Hóc Môn";
+        if (lat >= 10.900 && lat <= 11.150 && lng >= 106.350 && lng <= 106.620) return "Củ Chi";
+        if (lat >= 10.620 && lat <= 10.720 && lng >= 106.540 && lng <= 106.670) return "Bình Chánh";
+        if (lat >= 10.620 && lat <= 10.720 && lng >= 106.680 && lng <= 106.800) return "Nhà Bè";
+        if (lat >= 10.350 && lat <= 10.640 && lng >= 106.700 && lng <= 107.050) return "Cần Giờ";
+        // Nếu vẫn thuộc vùng TP.HCM chung
         return "TP.HCM";
     }
 

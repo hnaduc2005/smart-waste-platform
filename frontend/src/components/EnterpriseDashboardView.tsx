@@ -75,7 +75,17 @@ export const EnterpriseDashboardView = () => {
             phone: enterpriseData.phone || '',
             email: enterpriseData.email || '',
           });
-        } catch { /* No enterprise registered yet */ }
+        } catch { 
+          /* No enterprise registered yet, fetch companyName from user_db instead */
+          try {
+            const profile = await userApi.getProfile(user.userId);
+            if (profile && profile.companyName) {
+               setCapForm(prev => ({ ...prev, name: profile.companyName }));
+               // Create a dummy enterpriseData so that filtering collectors works with the name from Settings
+               enterpriseData = { name: profile.companyName };
+            }
+          } catch(e) {}
+        }
       }
 
       // Lọc đơn theo khu vực phục vụ của doanh nghiệp
@@ -88,7 +98,16 @@ export const EnterpriseDashboardView = () => {
         enterpriseApi.getRewardRules(),
       ]);
       if (reqs.status === 'fulfilled') setAllRequests(reqs.value || []);
-      if (cols.status === 'fulfilled') setCollectors(cols.value || []);
+      if (cols.status === 'fulfilled') {
+        const allCols = cols.value || [];
+        const entName = enterpriseData?.name || enterpriseData?.companyName || '';
+        if (entName) {
+          const myCols = allCols.filter((c: any) => c.companyName === entName);
+          setCollectors(myCols);
+        } else {
+          setCollectors([]);
+        }
+      }
       if (rules.status === 'fulfilled') setRewardRules(rules.value || []);
     } finally {
       setLoading(false);
@@ -131,6 +150,10 @@ export const EnterpriseDashboardView = () => {
 
   const handleSaveCapacity = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const isConfirmed = window.confirm("Bạn có chắc chắn muốn lưu thông tin này? Đây là dữ liệu quan trọng ảnh hưởng đến hệ thống điều phối.");
+    if (!isConfirmed) return;
+
     try {
       const payload = { ...capForm, dailyCapacity: parseFloat(capForm.dailyCapacity || '0') };
       if (enterprise?.id) {
@@ -144,7 +167,7 @@ export const EnterpriseDashboardView = () => {
       // Đồng bộ thông tin cơ bản sang user_db (EnterpriseProfile)
       if (user?.userId) {
         try {
-          await userApi.updateProfile(user.userId, payload);
+          await userApi.updateProfile(user.userId, { ...payload, companyName: payload.name });
         } catch (err) {
           console.error("Lỗi đồng bộ sang user_db", err);
         }

@@ -50,6 +50,7 @@ public class SecurityConfig {
                     "/api/v1/auth/refresh-token",
                     "/api/v1/auth/forgot-password",
                     "/api/v1/auth/reset-password",
+                    "/api/v1/auth/users/**",
                     "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()

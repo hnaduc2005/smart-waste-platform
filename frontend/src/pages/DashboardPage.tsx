@@ -13,6 +13,8 @@ import { UserProfileView } from '../components/UserProfileView';
 import { EnterpriseDashboardView } from '../components/EnterpriseDashboardView';
 import { EnterpriseStatsView } from '../components/EnterpriseStatsView';
 import { notificationApi } from '../services/notificationApi';
+import { userApi } from '../services/userApi';
+import { enterpriseApi } from '../services/enterpriseApi';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -104,6 +106,7 @@ export default function DashboardPage() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [totalPoints, setTotalPoints] = useState<number>(0);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [displayName, setDisplayName] = useState<string>('');
 
   useEffect(() => {
     let interval: any;
@@ -117,6 +120,25 @@ export default function DashboardPage() {
     updateUnreadCount();
     interval = setInterval(updateUnreadCount, 3000);
     return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDisplayName = async () => {
+      if (!user?.userId) return;
+      try {
+        if (user.role === 'ENTERPRISE') {
+          const ent = await enterpriseApi.getMyEnterprise(user.userId).catch(() => null);
+          const profile = await userApi.getProfile(user.userId).catch(() => null);
+          setDisplayName(ent?.name || profile?.companyName || user.username);
+        } else {
+          const profile = await userApi.getProfile(user.userId);
+          setDisplayName(profile?.fullName || user.username);
+        }
+      } catch (error) {
+        setDisplayName(user.username);
+      }
+    };
+    fetchDisplayName();
   }, [user]);
 
   useEffect(() => {
@@ -216,7 +238,7 @@ export default function DashboardPage() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.username || '...'}
+                {displayName || user?.username || '...'}
               </div>
               <div style={{ fontSize: 11, color: 'var(--green-400)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                 {user?.role ? (roleMap[user.role as keyof typeof roleMap] || user.role) : 'CITIZEN'}
@@ -260,7 +282,7 @@ export default function DashboardPage() {
             🟢 Đang hoạt động
           </div>
           <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.3px', marginBottom: 4 }}>
-            Xin chào, <span style={{ background: 'linear-gradient(135deg,#22c55e,#14b8a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{user?.username}</span>! 👋
+            Xin chào, <span style={{ background: 'linear-gradient(135deg,#22c55e,#14b8a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{displayName || user?.username}</span>! 👋
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
             {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · Cùng tạo ra tác động tích cực!

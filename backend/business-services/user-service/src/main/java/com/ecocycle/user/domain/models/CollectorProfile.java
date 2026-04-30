@@ -28,6 +28,9 @@ public class CollectorProfile extends UserProfileBase {
     @Column(name = "vehicle_plate")
     private String vehiclePlate;
 
+    @Column(name = "company_name")
+    private String companyName;
+
     @Column(name = "is_online")
     private Boolean isOnline;
 

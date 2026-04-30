@@ -46,7 +46,10 @@ export const CitizenRequestView = () => {
 
   // Form State
   const [type, setType] = useState('RECYCLABLE');
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState('');          // raw text address entered by user
+  const [locationCoords, setLocationCoords] = useState(''); // "lat,lng" after geocoding
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeLabel, setGeocodeLabel] = useState('');  // human-readable address from geocoder
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -77,6 +80,115 @@ export const CitizenRequestView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.userId]);
 
+  /** Tọa độ trung tâm các quận/huyện TP.HCM — dùng làm fallback khi Nominatim thất bại */
+  const DISTRICT_CENTROIDS: Record<string, [number, number]> = {
+    'quận 1': [10.7769, 106.7009], 'quan 1': [10.7769, 106.7009],
+    'quận 2': [10.7880, 106.7516], 'quan 2': [10.7880, 106.7516],
+    'quận 3': [10.7900, 106.6849], 'quan 3': [10.7900, 106.6849],
+    'quận 4': [10.7574, 106.7036], 'quan 4': [10.7574, 106.7036],
+    'quận 5': [10.7557, 106.6626], 'quan 5': [10.7557, 106.6626],
+    'quận 6': [10.7465, 106.6354], 'quan 6': [10.7465, 106.6354],
+    'quận 7': [10.7332, 106.7218], 'quan 7': [10.7332, 106.7218],
+    'quận 8': [10.7237, 106.6289], 'quan 8': [10.7237, 106.6289],
+    'quận 9': [10.8412, 106.7794], 'quan 9': [10.8412, 106.7794],
+    'quận 10': [10.7757, 106.6676], 'quan 10': [10.7757, 106.6676],
+    'quận 11': [10.7636, 106.6479], 'quan 11': [10.7636, 106.6479],
+    'quận 12': [10.8681, 106.6898], 'quan 12': [10.8681, 106.6898],
+    'bình thạnh': [10.8118, 106.7120], 'binh thanh': [10.8118, 106.7120],
+    'gò vấp': [10.8384, 106.6652], 'go vap': [10.8384, 106.6652],
+    'phú nhuận': [10.7960, 106.6835], 'phu nhuan': [10.7960, 106.6835],
+    'tân bình': [10.8015, 106.6524], 'tan binh': [10.8015, 106.6524],
+    'tân phú': [10.7903, 106.6286], 'tan phu': [10.7903, 106.6286],
+    'bình tân': [10.7539, 106.6034], 'binh tan': [10.7539, 106.6034],
+    'thủ đức': [10.8601, 106.7658], 'thu duc': [10.8601, 106.7658],
+    'hóc môn': [10.8921, 106.5980], 'hoc mon': [10.8921, 106.5980],
+    'củ chi': [11.0054, 106.4953], 'cu chi': [11.0054, 106.4953],
+    'bình chánh': [10.6755, 106.6024], 'binh chanh': [10.6755, 106.6024],
+    'nhà bè': [10.6919, 106.7418], 'nha be': [10.6919, 106.7418],
+    'cần giờ': [10.4135, 106.8673], 'can gio': [10.4135, 106.8673],
+    // Phường/xã nổi tiếng → quận tương ứng
+    'an phú đông': [10.8681, 106.6898],  // Quận 12
+    'thạnh lộc': [10.8770, 106.6793],     // Quận 12
+    'tân thới hiệp': [10.8620, 106.6700], // Quận 12
+    'hiệp thành': [10.8800, 106.6600],    // Quận 12
+    'thạnh xuân': [10.8900, 106.7000],    // Quận 12
+    'đông hưng thuận': [10.8750, 106.6600],// Quận 12
+    'tân chánh hiệp': [10.8650, 106.6500],// Quận 12
+    'an phú': [10.7900, 106.7450],        // Quận 2
+    'bình an': [10.8000, 106.7600],       // Quận 2
+    'bình khánh': [10.7800, 106.7500],    // Quận 2
+    'thảo điền': [10.8000, 106.7400],     // Quận 2
+    'thạnh mỹ lợi': [10.7700, 106.7600],  // Quận 2
+    'bình trưng': [10.8100, 106.7700],    // Quận 2
+  };
+
+  /** Thử tra cứu tọa độ từ tên quận/phường trong địa chỉ */
+  const fallbackByDistrictName = (address: string): string | null => {
+    const lc = address.toLowerCase()
+      .replace(/tp\.|tp |t\.p\.|thành phố|tỉnh|city|province/gi, '')
+      .trim();
+    // Sort by length desc so longer (more specific) names are matched first
+    const keys = Object.keys(DISTRICT_CENTROIDS).sort((a, b) => b.length - a.length);
+    for (const key of keys) {
+      if (lc.includes(key)) {
+        const [lat, lng] = DISTRICT_CENTROIDS[key];
+        setGeocodeLabel(`📍 Khu vực: ${key.replace(/^\w/, c => c.toUpperCase())} (TP.HCM) — tọa độ trung tâm`);
+        return `${lat.toFixed(6)},${lng.toFixed(6)}`;
+      }
+    }
+    return null;
+  };
+
+  /**
+   * Geocode địa chỉ text → "lat,lng".
+   * Chiến lược: (1) Nominatim full query, (2) Nominatim simplified, (3) fallback by district/ward name.
+   */
+  const geocodeAddress = async (address: string): Promise<string | null> => {
+    // Chuẩn hoá: bỏ phần "Việt Nam" và "Hồ Chí Minh" nếu đã có trong address để tránh trùng
+    const clean = address
+      .replace(/,?\s*(việt nam|vietnam|viet nam)/gi, '')
+      .replace(/,?\s*(hồ chí minh|ho chi minh|tp\.?\s*hcm|tp\.?\s*hồ chí minh)/gi, '')
+      .trim()
+      .replace(/,\s*$/, '');
+
+    const tryNominatim = async (q: string): Promise<{lat:string;lon:string;display_name:string} | null> => {
+      try {
+        const query = encodeURIComponent(q + ', Hồ Chí Minh, Việt Nam');
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=vn&addressdetails=1`,
+          { headers: { 'Accept-Language': 'vi', 'User-Agent': 'EcoCycle-App/1.0' } }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data && data.length > 0 ? data[0] : null;
+      } catch { return null; }
+    };
+
+    // Strategy 1: Nominatim full cleaned address
+    let result = await tryNominatim(clean);
+    if (result) {
+      setGeocodeLabel(result.display_name);
+      return `${parseFloat(result.lat).toFixed(6)},${parseFloat(result.lon).toFixed(6)}`;
+    }
+
+    // Strategy 2: Nominatim with only last 2-3 parts (bỏ số nhà, tên đường nhỏ)
+    const parts = clean.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length > 2) {
+      const simplified = parts.slice(-3).join(', ');
+      result = await tryNominatim(simplified);
+      if (result) {
+        setGeocodeLabel(result.display_name);
+        return `${parseFloat(result.lat).toFixed(6)},${parseFloat(result.lon).toFixed(6)}`;
+      }
+    }
+
+    // Strategy 3: Fallback by known Vietnamese district/ward names in the text
+    const fallback = fallbackByDistrictName(address);
+    if (fallback) return fallback;
+
+    return null;
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       alert('Trình duyệt của bạn không hỗ trợ định vị GPS!');
@@ -85,32 +197,73 @@ export const CitizenRequestView = () => {
     setGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation(`${position.coords.latitude},${position.coords.longitude}`);
+        const coords = `${position.coords.latitude.toFixed(6)},${position.coords.longitude.toFixed(6)}`;
+        setLocationCoords(coords);
+        setLocation(coords); // show coords in input
+        setGeocodeLabel('📍 Vị trí GPS thực tế');
         setGettingLocation(false);
       },
-      (error) => {
+      () => {
         alert('Không thể lấy vị trí. Vui lòng cho phép quyền truy cập vị trí.');
         setGettingLocation(false);
       }
     );
   };
 
+  const handleGeocodeInput = async () => {
+    if (!location.trim()) return;
+    // If already coords format, skip geocoding
+    if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim())) {
+      setLocationCoords(location.trim());
+      setGeocodeLabel('✅ Tọa độ GPS hợp lệ');
+      return;
+    }
+    setGeocoding(true);
+    const coords = await geocodeAddress(location);
+    setGeocoding(false);
+    if (coords) {
+      setLocationCoords(coords);
+    } else {
+      alert('Không tìm thấy địa chỉ này. Hãy thử nhập chính xác hơn hoặc sử dụng nút Lấy GPS.');
+      setGeocodeLabel('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.userId) return;
-    if (!location) {
-      alert('Vui lòng cung cấp tọa độ GPS!');
+    if (!location.trim()) {
+      alert('Vui lòng nhập địa chỉ hoặc lấy GPS!');
       return;
     }
-    try {
+
+    // Ensure we have geocoded coordinates before submitting
+    let finalCoords = locationCoords;
+    if (!finalCoords) {
+      // Try geocoding now if user didn't press the geocode button
       setSubmitting(true);
+      if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim())) {
+        finalCoords = location.trim();
+      } else {
+        const coords = await geocodeAddress(location);
+        if (!coords) {
+          alert('Không thể xác định tọa độ cho địa chỉ này. Hãy thử lại hoặc dùng nút Lấy GPS.');
+          setSubmitting(false);
+          return;
+        }
+        finalCoords = coords;
+      }
+    }
+
+    try {
+      if (!submitting) setSubmitting(true);
       if (imageFile) {
-        await collectionApi.createRequestWithImage(user.userId, location, description, imageFile);
+        await collectionApi.createRequestWithImage(user.userId, finalCoords, description, imageFile);
       } else {
         await collectionApi.createRequest({
           citizenId: user.userId,
           type,
-          location,
+          location: finalCoords,
           description,
           imageUrl: imageUrl || 'https://via.placeholder.com/300?text=No+Image'
         });
@@ -134,13 +287,13 @@ export const CitizenRequestView = () => {
     } finally {
       setShowForm(false);
       setLocation('');
+      setLocationCoords('');
+      setGeocodeLabel('');
       setDescription('');
       setImageUrl('');
       setImageFile(null);
       setType('RECYCLABLE');
       fetchRequests(); // reload list
-      
-
       setSubmitting(false);
     }
   };
@@ -199,29 +352,64 @@ export const CitizenRequestView = () => {
               </div>
             </div>
 
-            {/* GPS Location */}
+            {/* Location Input + Geocoding */}
             <div>
               <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                Vị trí thu gom (GPS) <span style={{ color: '#ef4444' }}>*</span>
+                Vị trí thu gom <span style={{ color: '#ef4444' }}>*</span>
+                <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 6 }}>(Gõ địa chỉ rồi bấm "Xác định" HOẶC dùng GPS tự động)</span>
               </label>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <input 
-                  type="text" required 
-                  value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Nhập địa chỉ hoặc lấy GPS..."
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  type="text" required
+                  value={location}
+                  onChange={(e) => { setLocation(e.target.value); setLocationCoords(''); setGeocodeLabel(''); }}
+                  onBlur={handleGeocodeInput}
+                  placeholder="VD: 119 Thạnh Lộc 15, Quận 12, TP.HCM"
                   style={{
-                    flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border)',
-                    padding: '14px 16px', borderRadius: 12, color: 'var(--text)', fontSize: 15, fontFamily: 'inherit'
+                    flex: 1, background: 'var(--bg-input)',
+                    border: `1px solid ${locationCoords ? 'rgba(34,197,94,0.6)' : 'var(--border)'}`,
+                    padding: '14px 16px', borderRadius: 12, color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit',
+                    transition: 'border-color 0.2s'
                   }}
                 />
+                <button type="button" onClick={handleGeocodeInput} disabled={geocoding || !location.trim()}
+                  title="Chuyển địa chỉ thành tọa độ bản đồ"
+                  style={{
+                    background: locationCoords ? 'rgba(34,197,94,0.15)' : 'rgba(168,85,247,0.1)',
+                    color: locationCoords ? '#4ade80' : '#c084fc',
+                    border: `1px solid ${locationCoords ? 'rgba(34,197,94,0.4)' : 'rgba(168,85,247,0.3)'}`,
+                    padding: '0 16px', borderRadius: 12, cursor: (geocoding || !location.trim()) ? 'not-allowed' : 'pointer',
+                    fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', gap: 6, opacity: !location.trim() ? 0.5 : 1
+                  }}>
+                  {geocoding ? '⏳' : locationCoords ? '✅' : '🗺️'}
+                  {geocoding ? 'Đang xác định...' : locationCoords ? 'Đã xác định' : 'Xác định địa chỉ'}
+                </button>
                 <button type="button" onClick={handleGetLocation} disabled={gettingLocation}
+                  title="Lấy vị trí GPS thực tế của bạn ngay lập tức"
                   style={{
                     background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)',
-                    padding: '0 20px', borderRadius: 12, cursor: gettingLocation ? 'wait' : 'pointer',
-                    fontWeight: 600, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 8
+                    padding: '0 16px', borderRadius: 12, cursor: gettingLocation ? 'wait' : 'pointer',
+                    fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', gap: 6
                   }}>
-                  {gettingLocation ? 'Đang lấy...' : '📍 Lấy GPS'}
+                  {gettingLocation ? '⏳ Đang lấy...' : '📍 GPS tự động'}
                 </button>
               </div>
+              {/* Geocode result feedback */}
+              {locationCoords && (
+                <div style={{
+                  marginTop: 8, padding: '8px 14px', borderRadius: 10,
+                  background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
+                  fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 8
+                }}>
+                  <span>✅</span>
+                  <div>
+                    <div style={{ color: '#4ade80', fontWeight: 600 }}>Tọa độ: {locationCoords}</div>
+                    {geocodeLabel && <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{geocodeLabel}</div>}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Description */}

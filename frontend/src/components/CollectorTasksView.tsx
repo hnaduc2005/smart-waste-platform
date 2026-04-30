@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collectionApi } from '../services/collectionApi';
 import { useAuth } from '../context/AuthContext';
 import { notificationApi } from '../services/notificationApi';
+import { userApi } from '../services/userApi';
 
 const STATUS_MAP = {
   ASSIGNED:   { label: 'Chờ thu gom', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
@@ -82,7 +83,36 @@ export const CollectorTasksView = () => {
   useEffect(() => {
     fetchTasks();
     const interval = setInterval(fetchTasks, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
+    
+    // --- Start Location Tracking ---
+    const updateLocation = () => {
+      if (navigator.geolocation && user?.userId) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              await userApi.updateProfile(user.userId, { 
+                latitude: pos.coords.latitude, 
+                longitude: pos.coords.longitude 
+              });
+            } catch (err) {
+              console.warn('Lỗi cập nhật vị trí tài xế:', err);
+            }
+          },
+          (err) => console.warn('Không lấy được vị trí GPS:', err),
+          { enableHighAccuracy: true }
+        );
+      }
+    };
+    
+    // Update ngay khi vào trang và lặp lại mỗi 15s để bản đồ điều phối thấy tài xế di chuyển
+    updateLocation();
+    const locInterval = setInterval(updateLocation, 15000);
+    // --- End Location Tracking ---
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(locInterval);
+    };
   }, [user?.userId]);
 
   const handleConfirm = async (e: React.FormEvent) => {

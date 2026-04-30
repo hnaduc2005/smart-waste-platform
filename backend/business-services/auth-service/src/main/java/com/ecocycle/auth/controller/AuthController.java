@@ -103,6 +103,26 @@ public class AuthController {
         ));
     }
 
+    @GetMapping("/users/{id}")
+    public ResponseEntity<Map<String, String>> getUserById(@PathVariable java.util.UUID id) {
+        return authService.getUserById(id)
+                .map(user -> ResponseEntity.ok(Map.of("email", user.getEmail())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * PUT /api/v1/auth/users/{id}/email
+     * Cập nhật email của user.
+     */
+    @PutMapping("/users/{id}/email")
+    public ResponseEntity<Map<String, String>> updateUserEmail(
+            @PathVariable java.util.UUID id, 
+            @RequestBody Map<String, String> request) {
+        String newEmail = request.get("email");
+        authService.updateUserEmail(id, newEmail);
+        return ResponseEntity.ok(Map.of("message", "Cập nhật email thành công"));
+    }
+
     /**
      * POST /api/v1/auth/forgot-password
      */

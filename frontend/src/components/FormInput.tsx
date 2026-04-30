@@ -21,7 +21,7 @@ const inputBase: React.CSSProperties = {
 
 /** Controlled form input with icon, error state & optional password toggle */
 const FormInput = forwardRef<HTMLInputElement, FormInputProps>(function FormInput(
-  { label, name, type = 'text', icon, placeholder, error, value, onChange, autoComplete, style = {} },
+  { label, name, type = 'text', icon, placeholder, error, value, onChange, autoComplete, style = {}, ...rest },
   ref
 ) {
   const [showPwd, setShowPwd] = useState(false);
@@ -58,6 +58,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(function FormInpu
           autoComplete={autoComplete}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          {...rest}
           style={{
             ...inputBase,
             paddingLeft: icon ? 42 : 14,

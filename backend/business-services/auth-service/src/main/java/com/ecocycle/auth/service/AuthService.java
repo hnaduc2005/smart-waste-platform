@@ -255,6 +255,18 @@ public class AuthService {
         ).toList();
     }
 
+    public java.util.Optional<UserAuth> getUserById(java.util.UUID id) {
+        return userAuthRepository.findById(id);
+    }
+
+    @Transactional
+    public void updateUserEmail(java.util.UUID id, String newEmail) {
+        UserAuth user = userAuthRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setEmail(newEmail);
+        userAuthRepository.save(user);
+    }
+
     public Map<String, Object> getTotalUsers() {
         long total = userAuthRepository.count();
         return Map.of("count", total, "trend", 0.0); // Trend có thể tính bằng công thức tháng trước

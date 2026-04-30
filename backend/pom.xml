@@ -40,6 +40,7 @@
         <module>business-services/notification-service</module>
         <module>business-services/enterprise-service</module>
         <module>business-services/analytics-service</module>
+        <module>business-services/admin-service</module>
     </modules>
 
     <!-- Thuộc tính chung (Shared Properties) -->

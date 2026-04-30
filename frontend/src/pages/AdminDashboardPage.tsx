@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { tokenStore } from '../services/tokenStore';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -11,6 +13,7 @@ import axios from 'axios';
 
 const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [charts, setCharts] = useState<any>(null);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
@@ -19,7 +22,7 @@ const AdminDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = tokenStore.getAccessToken();
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
         // Fetch stats
@@ -77,9 +80,8 @@ const AdminDashboardPage: React.FC = () => {
     fetchAdminData();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 

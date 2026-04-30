@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Medal, Star, Flame, History, ChevronRight, CheckCircle2, X } from 'lucide-react';
+import { Trophy, Medal, Star, Flame, History, ChevronRight, CheckCircle2, X, Loader2 } from 'lucide-react';
 import FeedbackModal from '../components/common/FeedbackModal';
 import { useAuth } from '../context/AuthContext';
 import { rewardApi } from '../services/rewardApi';
@@ -32,6 +32,7 @@ export const RewardView = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
+  const [isRedeeming, setIsRedeeming] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
   const [latestTask, setLatestTask] = useState<any>(null);
@@ -47,21 +48,23 @@ export const RewardView = () => {
     
     if (!user?.userId) return;
 
+    setIsRedeeming(true);
+
     try {
-      await rewardApi.redeemReward({
+      const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+      const apiCall = rewardApi.redeemReward({
         citizenId: user.userId,
         cost: cost,
         rewardTitle: title
       });
+
+      await Promise.all([apiCall, minDelay]);
       
       setRedeemSuccess(true);
       setCurrentPoints(prev => Math.max(0, prev - cost));
       
       // Reload history to show the new transaction
       rewardApi.getHistory(user.userId).then(res => {
-         // ... we will let the existing useEffect handle it if we triggered a reload state, 
-         // but for simplicity we can just wait for next page refresh or update the state manually.
-         // Let's just do a manual prepend to transactions for immediate feedback.
          const newTx: Transaction = {
            id: Date.now(),
            title: `Đổi quà: ${title}`,
@@ -80,6 +83,8 @@ export const RewardView = () => {
     } catch (err: any) {
       console.error(err);
       setErrorMsg("Lỗi khi đổi thưởng: " + (err.response?.data || "Vui lòng thử lại"));
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -365,7 +370,15 @@ export const RewardView = () => {
               <X size={24} />
             </button>
             
-            {redeemSuccess ? (
+            {isRedeeming ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                  <Loader2 size={48} color="#10b981" style={{ animation: 'spin 1s linear infinite' }} />
+                </div>
+                <h3 style={{ fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 12px' }}>Đang xử lý đổi quà...</h3>
+                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Vui lòng đợi giây lát, hệ thống đang xử lý và gửi email voucher cho bạn.</p>
+              </div>
+            ) : redeemSuccess ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <div style={{ width: 80, height: 80, background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                   <CheckCircle2 size={48} color="#10b981" />
@@ -412,7 +425,7 @@ export const RewardView = () => {
           </div>
         </div>
       )}
-      <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }`}</style>
+      <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} } @keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

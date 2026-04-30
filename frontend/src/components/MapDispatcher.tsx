@@ -57,6 +57,7 @@ export const MapDispatcher = () => {
 
   // Dùng ref để interval luôn đọc được giá trị mới nhất (tránh stale closure)
   const serviceAreaRef = useRef<string | undefined>(undefined);
+  const enterpriseNameRef = useRef<string | undefined>(undefined);
   const rejectedIdsRef = useRef<Set<string>>(new Set());
 
   // Default center: Ho Chi Minh City
@@ -66,7 +67,11 @@ export const MapDispatcher = () => {
   const fetchCollectors = async () => {
     try {
       const data = await userApi.getCollectors();
-      const mapped = data.map((c: any, index: number) => ({
+      const myEntName = enterpriseNameRef.current;
+      // Chỉ hiển thị các collector trực thuộc doanh nghiệp này (so khớp companyName)
+      const myCollectors = data.filter((c: any) => !myEntName || c.companyName === myEntName);
+
+      const mapped = myCollectors.map((c: any, index: number) => ({
         id: c.id,
         name: c.fullName || 'Tài xế',
         vehiclePlate: c.vehiclePlate || '',
@@ -106,6 +111,7 @@ export const MapDispatcher = () => {
           const ent = await enterpriseApi.getMyEnterprise(user.userId);
           setEnterprise(ent);
           serviceAreaRef.current = ent?.serviceArea;  // cập nhật ref
+          enterpriseNameRef.current = ent?.name; // lưu tên doanh nghiệp để filter tài xế
         } catch { /* no enterprise */ }
       }
       fetchPending();
@@ -133,7 +139,7 @@ export const MapDispatcher = () => {
 
       setAssignMsg({ type: 'success', text: '✅ Đã gán nhiệm vụ thành công!' });
       setTimeout(() => setAssignMsg(null), 3000);
-      fetchPending(enterprise?.serviceArea);
+      fetchPending();
 
       // Gửi thông báo cho cả hai bên
       if (citizenId) {
@@ -217,67 +223,101 @@ export const MapDispatcher = () => {
           </div>
         )}
 
-        <MapContainer center={[10.823, 106.629]} zoom={13} style={{ height: '100%', width: '100%' }}>
+        <MapContainer center={[10.823, 106.629]} zoom={14} style={{ height: '100%', width: '100%' }}>
+          {/* OpenStreetMap standard tiles — chi tiết hơn CARTO, phủ đường nhỏ VN */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            maxZoom={19}
           />
+
+          {/* Legend overlay */}
+          <div style={{
+            position: 'absolute', bottom: 24, left: 12, zIndex: 1000,
+            background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
+            padding: '10px 14px', fontSize: 12, color: '#f1f5f2', display: 'flex', flexDirection: 'column', gap: 6
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" style={{ height: 20, objectFit: 'contain' }} />
+              <span>Đơn chờ thu gom ({requests.length})</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png" style={{ height: 20, objectFit: 'contain' }} />
+              <span>Tài xế ({collectors.filter(c => c.status === 'Sẵn sàng').length} sẵn sàng)</span>
+            </div>
+          </div>
 
           {/* Render Collectors (Green) */}
           {collectors.map(col => (
             <Marker key={col.id} position={col.coords as any} icon={greenIcon}>
               <Popup>
-                <div style={{ padding: 4 }}>
-                  <div style={{ fontWeight: 800, marginBottom: 4 }}>🚛 {col.name}</div>
-                  {col.vehiclePlate && <div style={{ fontSize: 12, color: '#555', marginBottom: 2 }}>🚗 {col.vehiclePlate}</div>}
-                  <div style={{ color: col.status === 'Sẵn sàng' ? '#10b981' : '#f59e0b', fontSize: 13, fontWeight: 600 }}>
-                    {col.status}
+                <div style={{ padding: 6, minWidth: 200 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>🚛 {col.name}</div>
+                  {col.vehiclePlate && <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>🚗 Biển số: <b>{col.vehiclePlate}</b></div>}
+                  <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>
+                    📍 Tọa độ: <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 4 }}>{col.coords[0].toFixed(5)}, {col.coords[1].toFixed(5)}</code>
                   </div>
+                  <div style={{ color: col.status === 'Sẵn sàng' ? '#059669' : '#d97706', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                    ● {col.status}
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps?q=${col.coords[0]},${col.coords[1]}`}
+                    target="_blank" rel="noreferrer"
+                    style={{ display: 'block', textAlign: 'center', background: '#4285f4', color: 'white', padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    🗺️ Xem trên Google Maps
+                  </a>
                 </div>
               </Popup>
             </Marker>
           ))}
 
-
           {/* Render Pending Requests (Red) */}
           {requests.map(req => {
             if (!req.location) return null;
-            const coords = req.location.split(',').map(Number);
-            if (coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1])) return null;
+            const parts = req.location.split(',').map((s: string) => parseFloat(s.trim()));
+            if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+            const [lat, lng] = parts;
             return (
-              <Marker key={req.id} position={coords as any} icon={redIcon}
-                eventHandlers={{
-                  click: () => { /* Thể hiện focus hoặc drop vùng */ }
-                }}
-              >
+              <Marker key={req.id} position={[lat, lng]} icon={redIcon}>
                 <Popup>
-                  <div 
-                    style={{ padding: 8, minWidth: 200 }}
-                    onDragOver={e => e.preventDefault()}
-                    onDrop={e => handleDropOnRequest(e, req.id)}
-                  >
-                    <div style={{ fontWeight: 800, color: '#ef4444', marginBottom: 4, fontSize: 15 }}>
-                      📍 Yêu cầu thu gom
+                  <div style={{ padding: 8, minWidth: 220 }}>
+                    <div style={{ fontWeight: 800, color: '#dc2626', marginBottom: 6, fontSize: 15 }}>
+                      🗑️ Đơn thu gom #{req.id.substring(0, 8)}
                     </div>
-                    <div style={{ fontSize: 13, marginBottom: 4 }}>ID: {req.id.substring(0, 8)}</div>
-                    <div style={{ fontSize: 13, marginBottom: 12 }}><b>Loại:</b> {WASTE_TYPE_MAP[req.type] || req.type}</div>
-                    
-                    <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>
-                      * Kéo thả tài xế vào đây để gán, hoặc chọn:
+                    <div style={{ fontSize: 13, marginBottom: 4 }}><b>Loại rác:</b> {WASTE_TYPE_MAP[req.type] || req.type}</div>
+                    <div style={{ fontSize: 12, color: '#555', marginBottom: 4 }}>
+                      📍 Tọa độ: <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 4 }}>{lat.toFixed(5)}, {lng.toFixed(5)}</code>
                     </div>
-                    
-                    <select 
-                      onChange={(e) => {
-                        if(e.target.value) handleAssign(req.id, e.target.value);
-                      }}
+                    {req.description && (
+                      <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontStyle: 'italic' }}>📝 {req.description}</div>
+                    )}
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`}
+                      target="_blank" rel="noreferrer"
+                      style={{ display: 'block', textAlign: 'center', background: '#dc2626', color: 'white', padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', marginBottom: 10 }}
+                    >
+                      🚗 Chỉ đường đến đây
+                    </a>
+                    <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Gán tài xế:</div>
+                    <select
+                      defaultValue=""
+                      onChange={(e) => { if (e.target.value) handleAssign(req.id, e.target.value); }}
                       disabled={assigningId === req.id}
-                      style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ccc' }}
+                      style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
                     >
                       <option value="">-- Chọn tài xế --</option>
                       {collectors.filter(c => c.status === 'Sẵn sàng').map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
+                    <button
+                      onClick={() => handleReject(req.id, req.citizenId)}
+                      style={{ marginTop: 8, width: '100%', padding: '6px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      ❌ Từ chối đơn này
+                    </button>
                   </div>
                 </Popup>
               </Marker>
