@@ -120,6 +120,8 @@ export const CitizenRequestView = () => {
     'thảo điền': [10.8000, 106.7400],     // Quận 2
     'thạnh mỹ lợi': [10.7700, 106.7600],  // Quận 2
     'bình trưng': [10.8100, 106.7700],    // Quận 2
+    'thạnh mỹ tây': [10.8118, 106.7120],  // Bình Thạnh
+    'văn thánh': [10.8000, 106.7160],     // Bình Thạnh
   };
 
   /** Thử tra cứu tọa độ từ tên quận/phường trong địa chỉ */
@@ -171,10 +173,10 @@ export const CitizenRequestView = () => {
       return `${parseFloat(result.lat).toFixed(6)},${parseFloat(result.lon).toFixed(6)}`;
     }
 
-    // Strategy 2: Nominatim with only last 2-3 parts (bỏ số nhà, tên đường nhỏ)
+    // Strategy 2: Nominatim with progressive fallback (bỏ dần số nhà, tên đường, phường)
     const parts = clean.split(',').map(s => s.trim()).filter(Boolean);
-    if (parts.length > 2) {
-      const simplified = parts.slice(-3).join(', ');
+    for (let i = 1; i < parts.length; i++) {
+      const simplified = parts.slice(i).join(', ');
       result = await tryNominatim(simplified);
       if (result) {
         setGeocodeLabel(result.display_name);

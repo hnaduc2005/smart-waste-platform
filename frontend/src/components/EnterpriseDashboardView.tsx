@@ -22,6 +22,20 @@ const STATUS_LABELS: Record<string, {label:string;color:string;bg:string}> = {
   CANCELLED:  { label: 'Đã từ chối',  color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
 };
 
+const formatDate = (dateInput: any) => {
+  if (!dateInput) return '';
+  if (Array.isArray(dateInput)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, second)).toLocaleString('vi-VN');
+  }
+  let dateString = String(dateInput);
+  if (dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+')) {
+    dateString += 'Z';
+  }
+  const dateObj = new Date(dateString);
+  return isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleString('vi-VN');
+};
+
 const TAB_ITEMS = [
   { id: 'requests', label: 'Tiếp nhận đơn', icon: '📥' },
   { id: 'dispatch', label: 'Điều phối', icon: '🗺️' },
@@ -97,7 +111,21 @@ export const EnterpriseDashboardView = () => {
         userApi.getCollectors(),
         enterpriseApi.getRewardRules(),
       ]);
-      if (reqs.status === 'fulfilled') setAllRequests(reqs.value || []);
+      if (reqs.status === 'fulfilled') {
+        let fetchedReqs = reqs.value || [];
+        const acceptedTypesStr = enterpriseData?.acceptedWasteTypes;
+        if (acceptedTypesStr) {
+          const typesArray = acceptedTypesStr.split(',').map((s: string) => s.trim().toUpperCase());
+          fetchedReqs = fetchedReqs.filter((r: any) => typesArray.includes(r.type));
+        }
+        
+        // Loại bỏ các đơn rác không hợp lệ (ngoài TP.HCM) nếu doanh nghiệp chọn 'Toàn TP.HCM'
+        if (serviceArea === 'Toàn TP.HCM') {
+          fetchedReqs = fetchedReqs.filter((r: any) => r.district !== 'Ngoài TP.HCM' && r.district !== 'Khác' && r.district !== 'Chưa xác định');
+        }
+        
+        setAllRequests(fetchedReqs);
+      }
       if (cols.status === 'fulfilled') {
         const allCols = cols.value || [];
         const entName = enterpriseData?.name || enterpriseData?.companyName || '';
@@ -121,8 +149,19 @@ export const EnterpriseDashboardView = () => {
     if (activeTab !== 'tracking') return;
     const serviceArea = enterprise?.serviceArea;
     const districtParam = (serviceArea && serviceArea !== 'Toàn TP.HCM') ? serviceArea : undefined;
+    const acceptedTypesStr = enterprise?.acceptedWasteTypes;
     const id = setInterval(() =>
-      collectionApi.getAllRequests(undefined, districtParam).then(d => setAllRequests(d || [])),
+      collectionApi.getAllRequests(undefined, districtParam).then(d => {
+        let fetchedReqs = d || [];
+        if (acceptedTypesStr) {
+          const typesArray = acceptedTypesStr.split(',').map((s: string) => s.trim().toUpperCase());
+          fetchedReqs = fetchedReqs.filter((r: any) => typesArray.includes(r.type));
+        }
+        if (serviceArea === 'Toàn TP.HCM') {
+          fetchedReqs = fetchedReqs.filter((r: any) => r.district !== 'Ngoài TP.HCM' && r.district !== 'Khác' && r.district !== 'Chưa xác định');
+        }
+        setAllRequests(fetchedReqs);
+      }),
     15000);
     return () => clearInterval(id);
   }, [activeTab, enterprise]);
@@ -219,9 +258,15 @@ export const EnterpriseDashboardView = () => {
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 20px', background:'rgba(34,197,94,0.08)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:14, flexWrap:'wrap' }}>
           <span style={{ fontSize:16 }}>📍</span>
           <span style={{ fontWeight:700, color:'#34d399' }}>Khu vực phục vụ:</span>
-          <span style={{ background:'rgba(34,197,94,0.15)', color:'#4ade80', padding:'4px 14px', borderRadius:20, fontWeight:700, fontSize:14 }}>
-            {enterprise.serviceArea || '— Chưa cấu hình'}
-          </span>
+          {enterprise.serviceArea ? enterprise.serviceArea.split(',').map((sa: string) => (
+             <span key={sa} style={{ background:'rgba(34,197,94,0.15)', color:'#4ade80', padding:'4px 14px', borderRadius:20, fontWeight:700, fontSize:14 }}>
+                {sa.trim()}
+             </span>
+          )) : (
+             <span style={{ background:'rgba(34,197,94,0.15)', color:'#4ade80', padding:'4px 14px', borderRadius:20, fontWeight:700, fontSize:14 }}>
+                — Chưa cấu hình
+             </span>
+          )}
           {enterprise.acceptedWasteTypes && (
             <>
               <span style={{ color:'var(--text-muted)', fontSize:13 }}>·</span>
@@ -292,7 +337,7 @@ export const EnterpriseDashboardView = () => {
                 </div>
                 <div style={{ fontSize:13, color:'var(--text-secondary)' }}>📍 {req.location}</div>
                 {req.description && <div style={{ fontSize:13, color:'var(--text-secondary)', fontStyle:'italic', marginTop:4 }}>📝 {req.description}</div>}
-                <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:4 }}>ID: {req.id.substring(0,8)} · {req.createdAt ? new Date(req.createdAt).toLocaleString('vi-VN') : ''}</div>
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginTop:4 }}>ID: {req.id.substring(0,8)} · {formatDate(req.createdAt)}</div>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:10, minWidth:220 }}>
                 <select defaultValue=""
@@ -358,7 +403,7 @@ export const EnterpriseDashboardView = () => {
                   borderRadius:14, padding:'14px 18px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <div>
                     <span style={{ fontWeight:700 }}>{WASTE_LABELS[req.type]?.icon} {WASTE_LABELS[req.type]?.label || req.type}</span>
-                    <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>ID: {req.id.substring(0,8)} · {req.createdAt ? new Date(req.createdAt).toLocaleString('vi-VN') : ''}</div>
+                    <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>ID: {req.id.substring(0,8)} · {formatDate(req.createdAt)}</div>
                   </div>
                   {statusBadge(req.status)}
                 </div>
@@ -377,7 +422,7 @@ export const EnterpriseDashboardView = () => {
               { key:'name', label:'Tên doanh nghiệp', colSpan:2 },
               { key:'licenseNumber', label:'Số giấy phép kinh doanh' },
               { key:'dailyCapacity', label:'Công suất (Tấn/ngày)', type:'number' },
-              { key:'serviceArea', label:'Khu vực phục vụ', colSpan:2, type:'select', options: ['Toàn TP.HCM', 'Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 9', 'Quận 10', 'Quận 11', 'Quận 12', 'Quận Bình Thạnh', 'Quận Gò Vấp', 'Quận Phú Nhuận', 'Quận Tân Bình', 'Quận Tân Phú'] },
+              { key:'serviceArea', label:'Khu vực phục vụ', colSpan:2, type:'multi-select-checkboxes', options: ['Toàn TP.HCM', 'Thành phố Thủ Đức', 'Quận 1', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 10', 'Quận 11', 'Quận 12', 'Bình Tân', 'Bình Thạnh', 'Gò Vấp', 'Phú Nhuận', 'Tân Bình', 'Tân Phú', 'Bình Chánh', 'Củ Chi', 'Hóc Môn', 'Nhà Bè', 'Cần Giờ'] },
               { key:'acceptedWasteTypes', label:'Loại rác tiếp nhận', colSpan:2, type:'checkboxes' },
               { key:'address', label:'Địa chỉ trụ sở', colSpan:2 },
               { key:'phone', label:'Điện thoại' },
@@ -385,17 +430,31 @@ export const EnterpriseDashboardView = () => {
             ].map((f: any) => (
               <div key={f.key} style={{ gridColumn: f.colSpan === 2 ? 'span 2' : 'span 1' }}>
                 <label style={{ display:'block', fontSize:13, fontWeight:600, color:'var(--text-secondary)', marginBottom:6 }}>{f.label}</label>
-                {f.type === 'select' ? (
-                  <select
-                    value={(capForm as any)[f.key]}
-                    onChange={e => setCapForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    style={{ ...INPUT_STYLE, color: (capForm as any)[f.key] ? 'white' : 'var(--text-secondary)' }}
-                  >
-                    <option value="">-- Chọn khu vực --</option>
-                    {f.options.map((opt: string) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+                {f.type === 'multi-select-checkboxes' ? (
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {f.options.map((opt: string) => {
+                      const isChecked = capForm[f.key as keyof typeof capForm] ? (capForm[f.key as keyof typeof capForm] as string).split(',').includes(opt) : false;
+                      return (
+                        <label key={opt} style={{ display:'flex', alignItems:'center', gap:6, background:'var(--bg-input)', padding:'8px 12px', borderRadius:8, cursor:'pointer', border: isChecked ? '1px solid var(--green-400)' : '1px solid var(--border)' }}>
+                          <input type="checkbox" checked={isChecked} onChange={e => {
+                            let current = capForm[f.key as keyof typeof capForm] ? (capForm[f.key as keyof typeof capForm] as string).split(',').filter(Boolean) : [];
+                            if (opt === 'Toàn TP.HCM') {
+                               if (e.target.checked) current = ['Toàn TP.HCM'];
+                               else current = [];
+                            } else {
+                               if (current.includes('Toàn TP.HCM')) {
+                                   current = current.filter((x: string) => x !== 'Toàn TP.HCM');
+                               }
+                               if (e.target.checked) current.push(opt);
+                               else current = current.filter((x: string) => x !== opt);
+                            }
+                            setCapForm(p => ({ ...p, [f.key]: current.join(',') }));
+                          }} style={{accentColor:'var(--green-500)'}} />
+                          <span style={{ fontSize:14 }}>{opt}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
                 ) : f.type === 'checkboxes' ? (
                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     {Object.keys(WASTE_LABELS).map(wt => {

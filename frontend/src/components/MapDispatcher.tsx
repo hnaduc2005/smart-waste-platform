@@ -58,6 +58,7 @@ export const MapDispatcher = () => {
   // Dùng ref để interval luôn đọc được giá trị mới nhất (tránh stale closure)
   const serviceAreaRef = useRef<string | undefined>(undefined);
   const enterpriseNameRef = useRef<string | undefined>(undefined);
+  const acceptedWasteTypesRef = useRef<string | undefined>(undefined);
   const rejectedIdsRef = useRef<Set<string>>(new Set());
 
   // Default center: Ho Chi Minh City
@@ -91,10 +92,21 @@ export const MapDispatcher = () => {
     try {
       setLoading(true);
       const sa = serviceAreaRef.current;
+      const acceptedTypes = acceptedWasteTypesRef.current;
       const districtParam = (sa && sa !== 'Toàn TP.HCM') ? sa : undefined;
       const data = await collectionApi.getAllRequests('PENDING', districtParam);
       // Lọc ra những đơn đã bị reject (trong trường hợp API chưa kịp cập nhật)
-      const filtered = (data || []).filter((r: any) => !rejectedIdsRef.current.has(r.id));
+      let filtered = (data || []).filter((r: any) => !rejectedIdsRef.current.has(r.id));
+
+      if (acceptedTypes) {
+          const typesArray = acceptedTypes.split(',').map(s => s.trim().toUpperCase());
+          filtered = filtered.filter((r: any) => typesArray.includes(r.type));
+      }
+
+      if (sa === 'Toàn TP.HCM') {
+          filtered = filtered.filter((r: any) => r.district !== 'Ngoài TP.HCM' && r.district !== 'Khác' && r.district !== 'Chưa xác định');
+      }
+
       setRequests(filtered);
     } catch (e) {
       console.error('Lỗi tải đơn pending:', e);
@@ -112,6 +124,7 @@ export const MapDispatcher = () => {
           setEnterprise(ent);
           serviceAreaRef.current = ent?.serviceArea;  // cập nhật ref
           enterpriseNameRef.current = ent?.name; // lưu tên doanh nghiệp để filter tài xế
+          acceptedWasteTypesRef.current = ent?.acceptedWasteTypes;
         } catch { /* no enterprise */ }
       }
       fetchPending();

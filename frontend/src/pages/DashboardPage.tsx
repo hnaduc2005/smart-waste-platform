@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CitizenRequestView } from '../components/CitizenRequestView';
 import { MapDispatcher } from '../components/MapDispatcher';
@@ -15,8 +15,9 @@ import { EnterpriseStatsView } from '../components/EnterpriseStatsView';
 import { notificationApi } from '../services/notificationApi';
 import { userApi } from '../services/userApi';
 import { enterpriseApi } from '../services/enterpriseApi';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+import { collectionApi } from '../services/collectionApi';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 interface NavItem {
   icon: string;
@@ -41,57 +42,47 @@ const NAV_ITEMS: NavItem[] = [
   { icon: '⚙️', label: 'Cài đặt', id: 'settings', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
 ];
 
-const STATS_BASE = [
-  { icon: '♻️', color: 'rgba(34,197,94,0.12)',  value: '24',     label: 'Lần thu gom', trend: '↑ +3 tháng này' },
-  { icon: '🏆', color: 'rgba(20,184,166,0.12)',  value: '...',  label: 'Điểm tích lũy', trend: '... hôm nay' },
-  { icon: '⚖️', color: 'rgba(59,130,246,0.12)',  value: '87kg',   label: 'Rác tái chế', trend: '↑ +12kg tháng này' },
-  { icon: '🌱', color: 'rgba(234,179,8,0.12)',   value: 'Top 5%', label: 'Xếp hạng khu vực', trend: '↑ Tăng 8 bậc' },
-];
-
-const ACTIVITIES = [
-  { icon: '✅', bg: 'rgba(34,197,94,0.1)',  title: 'Thu gom hoàn thành', sub: '+50 điểm · Rác hữu cơ 2kg',  badge: 'success', time: '2 giờ trước' },
-  { icon: '⏳', bg: 'rgba(234,179,8,0.1)',  title: 'Yêu cầu đang xử lý', sub: 'Đang chờ · Rác tái chế 3.5kg', badge: 'warning', time: 'Hôm nay' },
-  { icon: '🏆', bg: 'rgba(59,130,246,0.1)', title: 'Đạt huy hiệu mới',    sub: 'Green Hero · 100kg rác đã phân loại', badge: 'info', time: '3 ngày trước' },
-];
-
 const BADGE_STYLES = {
-  success: { bg: 'rgba(34,197,94,0.15)',  color: '#4ade80' },
-  warning: { bg: 'rgba(234,179,8,0.15)',  color: '#fbbf24' },
-  info:    { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+  success: { bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
+  warning: { bg: 'rgba(234,179,8,0.15)', color: '#fbbf24' },
+  info: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
 };
 
+const WASTE_LABELS: Record<string, string> = {
+  RECYCLABLE: '♻️ Tái chế', ORGANIC: '🍎 Hữu cơ',
+  HAZARDOUS: '⚠️ Độc hại', BULKY: '🛏️ Cồng kềnh', ELECTRONIC: '💻 Điện tử',
+};
 
+const STATUS_INFO: Record<string, { icon: string; badge: 'success' | 'warning' | 'info'; label: string }> = {
+  COLLECTED: { icon: '✅', badge: 'success', label: 'Hoàn thành' },
+  COMPLETED: { icon: '✅', badge: 'success', label: 'Hoàn thành' },
+  PENDING: { icon: '⏳', badge: 'warning', label: 'Chờ xử lý' },
+  ASSIGNED: { icon: '🟡', badge: 'info', label: 'Đã tiếp nhận' },
+  ON_THE_WAY: { icon: '🚚', badge: 'info', label: 'Đang đến' },
+  CANCELLED: { icon: '❌', badge: 'warning', label: 'Đã hủy' },
+};
 
-const chartData = [
-  { name: 'T2', points: 40, weight: 1.2 },
-  { name: 'T3', points: 65, weight: 2.1 },
-  { name: 'T4', points: 30, weight: 0.8 },
-  { name: 'T5', points: 80, weight: 2.5 },
-  { name: 'T6', points: 55, weight: 1.5 },
-  { name: 'T7', points: 90, weight: 3.0 },
-  { name: 'CN', points: 45, weight: 1.1 },
-];
-
-function CustomChart() {
+function CustomChart({ data }: { data: { name: string; điểm: number; đơn: number }[] }) {
   return (
     <div style={{ width: '100%', height: 250 }}>
       <ResponsiveContainer>
-        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorPoints" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
-              <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
           <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-          <Tooltip 
+          <Tooltip
             contentStyle={{ backgroundColor: 'rgba(17, 24, 39, 0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
             itemStyle={{ color: '#22c55e', fontWeight: 'bold' }}
             cursor={{ fill: 'rgba(255,255,255,0.02)' }}
           />
-          <Area type="monotone" dataKey="points" name="Điểm thưởng" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorPoints)" />
+          <Area type="monotone" dataKey="điểm" name="Điểm thưởng" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorPoints)" />
+          <Area type="monotone" dataKey="đơn" name="Số đơn" stroke="#14b8a6" strokeWidth={2} fillOpacity={0} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -104,9 +95,14 @@ export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('overview');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [totalPoints, setTotalPoints] = useState<number>(0);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [displayName, setDisplayName] = useState<string>('');
+
+  // Citizen real stats
+  const [citizenRequests, setCitizenRequests] = useState<any[]>([]);
+  const [citizenCompletedTasks, setCitizenCompletedTasks] = useState<any[]>([]);
+  const [citizenPoints, setCitizenPoints] = useState(0);
+  const [citizenChartData, setCitizenChartData] = useState<any[]>([]);
 
   useEffect(() => {
     let interval: any;
@@ -115,7 +111,7 @@ export default function DashboardPage() {
       try {
         const data = await notificationApi.getMine();
         setUnreadNotificationCount(data.filter((n: any) => !n.isRead).length);
-      } catch(e) {}
+      } catch (e) { }
     };
     updateUnreadCount();
     interval = setInterval(updateUnreadCount, 3000);
@@ -141,18 +137,92 @@ export default function DashboardPage() {
     fetchDisplayName();
   }, [user]);
 
+  // Fetch citizen-specific real data
   useEffect(() => {
-    if (user?.userId) {
-      rewardApi.getHistory(user.userId).then(res => {
-        const points = res.reduce((acc, curr: any) => acc + (curr.amount ?? curr.points ?? 0), 0);
-        setTotalPoints(points || 0);
-      }).catch(err => console.log('Không lấy được điểm:', err));
-    }
+    if (!user?.userId || user.role !== 'CITIZEN') return;
+
+    const load = async () => {
+      const [reqResult, completedResult, rewardResult] = await Promise.allSettled([
+        collectionApi.getCitizenRequests(user.userId),
+        collectionApi.getCitizenCompletedTasks(user.userId),
+        rewardApi.getHistory(user.userId),
+      ]);
+
+      const requests = reqResult.status === 'fulfilled' ? reqResult.value : [];
+      const completed = completedResult.status === 'fulfilled' ? completedResult.value : [];
+      const rewards = rewardResult.status === 'fulfilled' ? rewardResult.value : [];
+
+      setCitizenRequests(requests);
+      setCitizenCompletedTasks(completed);
+
+      const totalPts = rewards.reduce((s: number, r: any) => s + (r.amount ?? r.points ?? 0), 0);
+      setCitizenPoints(totalPts);
+
+      // Build 7-day chart: đếm đơn theo ngày trong tuần
+      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      const today = new Date();
+      const chart = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (6 - i));
+        const dayLabel = dayNames[d.getDay()];
+        const dateStr = d.toISOString().slice(0, 10);
+
+        const dayRequests = requests.filter((r: any) => {
+          const created = r.createdAt ? r.createdAt.slice(0, 10) : '';
+          return created === dateStr;
+        });
+        const dayRewards = rewards.filter((r: any) => {
+          const created = r.createdAt ? r.createdAt.slice(0, 10) : '';
+          return created === dateStr;
+        });
+        const pts = dayRewards.reduce((s: number, r: any) => s + (r.amount ?? r.points ?? 0), 0);
+
+        return { name: dayLabel, điểm: pts, đơn: dayRequests.length };
+      });
+      setCitizenChartData(chart);
+    };
+
+    load();
   }, [user]);
 
-  // Merge dynamic points into stats
-  const STATS = [...STATS_BASE];
-  STATS[1].value = totalPoints.toLocaleString();
+  // Derived citizen stats
+  const totalWeightKg = citizenCompletedTasks.reduce((s: number, t: any) => s + (t.weight ?? 0), 0);
+  const thisMonthRequests = citizenRequests.filter((r: any) => {
+    if (!r.createdAt) return false;
+    const d = new Date(r.createdAt);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  const citizenStats = [
+    { icon: '♻️', color: 'rgba(34,197,94,0.12)', value: String(citizenRequests.length), label: 'Lần thu gom', trend: `↑ +${thisMonthRequests} tháng này` },
+    { icon: '🏆', color: 'rgba(20,184,166,0.12)', value: citizenPoints.toLocaleString(), label: 'Điểm tích lũy', trend: citizenPoints > 0 ? '🔥 Có điểm để đổi thưởng' : 'Chưa có điểm' },
+    { icon: '⚖️', color: 'rgba(59,130,246,0.12)', value: `${totalWeightKg.toFixed(1)} kg`, label: 'Tổng khối lượng', trend: `${citizenCompletedTasks.length} cuốc hoàn thành` },
+    { icon: '📅', color: 'rgba(234,179,8,0.12)', value: String(citizenRequests.filter((r: any) => r.status === 'PENDING' || r.status === 'ASSIGNED' || r.status === 'ON_THE_WAY').length), label: 'Đang chờ xử lý', trend: 'Đơn chưa hoàn thành' },
+  ];
+
+  // 3 hoạt động gần nhất từ request thực tế
+  const recentActivities = [...citizenRequests]
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .slice(0, 3)
+    .map((r: any) => {
+      const si = STATUS_INFO[r.status] ?? { icon: '❔', badge: 'warning' as const, label: r.status };
+      const timeAgo = (() => {
+        if (!r.createdAt) return '';
+        const diff = Date.now() - new Date(r.createdAt).getTime();
+        const h = Math.floor(diff / 3600000);
+        const d = Math.floor(diff / 86400000);
+        return h < 1 ? 'Vừa xong' : h < 24 ? `${h} giờ trước` : `${d} ngày trước`;
+      })();
+      return {
+        icon: si.icon,
+        bg: BADGE_STYLES[si.badge].bg,
+        title: si.label,
+        sub: `${WASTE_LABELS[r.type] ?? r.type} · ID: ${r.id?.substring(0, 8)}`,
+        badge: si.badge,
+        time: timeAgo,
+      };
+    });
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -247,8 +317,8 @@ export default function DashboardPage() {
             <button onClick={() => setShowLogoutModal(true)}
               title="Đăng xuất"
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: 4, borderRadius: 6, transition: 'all 150ms' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color='#ef4444'; (e.currentTarget as HTMLElement).style.background='rgba(239,68,68,0.1)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color='var(--text-muted)'; (e.currentTarget as HTMLElement).style.background='transparent'; }}>
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#ef4444'; (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
               ⏻
             </button>
           </div>
@@ -271,86 +341,152 @@ export default function DashboardPage() {
 
         {activeNav === 'overview' && (
           <>
-            {/* Welcome banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(20,184,166,0.07) 100%)',
-          border: '1px solid rgba(34,197,94,0.2)', borderRadius: 20,
-          padding: '28px 32px', marginBottom: 32, position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', right: 32, top: '50%', transform: 'translateY(-50%)', fontSize: 80, opacity: 0.12 }}>♻️</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, fontSize: 12, color: 'var(--green-400)', fontWeight: 600, marginBottom: 12 }}>
-            🟢 Đang hoạt động
-          </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.3px', marginBottom: 4 }}>
-            Xin chào, <span style={{ background: 'linear-gradient(135deg,#22c55e,#14b8a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{displayName || user?.username}</span>! 👋
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · Cùng tạo ra tác động tích cực!
-          </p>
-        </div>
-
-        {/* Stats grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 36 }}>
-          {STATS.map(s => (
-            <div key={s.label} style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
-              <div style={{ width: 44, height: 44, background: s.color, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 16 }}>{s.icon}</div>
-              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>{s.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--green-400)', marginTop: 8, fontWeight: 500 }}>{s.trend}</div>
+            {/* Welcome banner — chung cho tất cả role */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(20,184,166,0.07) 100%)',
+              border: '1px solid rgba(34,197,94,0.2)', borderRadius: 20,
+              padding: '28px 32px', marginBottom: 32, position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{ position: 'absolute', right: 32, top: '50%', transform: 'translateY(-50%)', fontSize: 80, opacity: 0.12 }}>♻️</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, fontSize: 12, color: 'var(--green-400)', fontWeight: 600, marginBottom: 12 }}>
+                🟢 Đang hoạt động
+              </div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.3px', marginBottom: 4 }}>
+                Xin chào, <span style={{ background: 'linear-gradient(135deg,#22c55e,#14b8a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{displayName || user?.username}</span>! 👋
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+                {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · Cùng tạo ra tác động tích cực!
+              </p>
             </div>
-          ))}
-        </div>
 
-        {/* Quick actions */}
-        <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
-          {[
-            { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests'), roles: ['CITIZEN'] },
-            { icon: '🚚', label: 'Nhiệm vụ thu gom', action: () => setActiveNav('tasks'), roles: ['COLLECTOR'] },
-            { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier'), roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
-            { icon: '🗺️', label: 'Xem bản đồ', action: () => setActiveNav('map'), roles: ['ENTERPRISE'] },
-            { icon: '🏅', label: 'Đổi điểm thưởng', action: () => setActiveNav('rewards'), roles: ['CITIZEN'] },
-          ].filter(a => !a.roles || !user?.role || a.roles.includes(user.role)).map(a => (
-            <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>{a.icon}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{a.label}</div>
-            </div>
-          ))}
-        </div>
+            {/* ── CITIZEN overview ── */}
+            {user?.role === 'CITIZEN' && (
+              <>
+                {/* Stats từ DB thật */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 36 }}>
+                  {citizenStats.map(s => (
+                    <div key={s.label} style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
+                      <div style={{ width: 44, height: 44, background: s.color, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 16 }}>{s.icon}</div>
+                      <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-1px', lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>{s.label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--green-400)', marginTop: 8, fontWeight: 500 }}>{s.trend}</div>
+                    </div>
+                  ))}
+                </div>
 
-        {/* Chart + Activity */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
-          <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
-            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
-              <span>📈 Biểu đồ Điểm thưởng (Recharts AreaChart)</span>
-              <span style={{ fontSize: 12, color: 'var(--green-400)', background: 'rgba(34,197,94,0.1)', padding: '4px 12px', borderRadius: 12 }}>+24% Tuần này</span>
-            </p>
-            <CustomChart />
-          </div>
+                {/* Quick actions */}
+                <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
+                  {[
+                    { icon: '📍', label: 'Đặt lịch thu gom', action: () => setActiveNav('requests') },
+                    { icon: '🤖', label: 'Nhận diện rác AI', action: () => navigate('/waste-classifier') },
+                    { icon: '🏅', label: 'Đổi điểm thưởng', action: () => setActiveNav('rewards') },
+                    { icon: '📊', label: 'Xem báo cáo', action: () => setActiveNav('reports') },
+                  ].map(a => (
+                    <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}>
+                      <div style={{ fontSize: 28, marginBottom: 10 }}>{a.icon}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{a.label}</div>
+                    </div>
+                  ))}
+                </div>
 
-          <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
-            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>🏆 Bảng Xếp Hạng Gần Đây</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {ACTIVITIES.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
-                  <div style={{ width: 38, height: 38, background: a.bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>{a.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{a.title}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 10, background: BADGE_STYLES[a.badge as keyof typeof BADGE_STYLES].bg, color: BADGE_STYLES[a.badge as keyof typeof BADGE_STYLES].color, fontSize: 10, fontWeight: 700 }}>
-                        {a.sub.split('·')[0]}
+                {/* Chart + Activity */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
+                  <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
+                    <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
+                      <span>📈 Hoạt động 7 ngày qua</span>
+                      <span style={{ fontSize: 12, color: 'var(--green-400)', background: 'rgba(34,197,94,0.1)', padding: '4px 12px', borderRadius: 12 }}>
+                        {citizenChartData.reduce((s, d) => s + d.điểm, 0)} điểm
                       </span>
-                      {' · '}{a.sub.split('·')[1]}
+                    </p>
+                    {citizenChartData.some(d => d.điểm > 0 || d.đơn > 0)
+                      ? <CustomChart data={citizenChartData} />
+                      : <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Chưa có hoạt động trong 7 ngày qua</div>
+                    }
+                  </div>
+                  <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
+                    <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>🕑 Đơn gần nhất</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {recentActivities.length === 0
+                        ? <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Chưa có đơn nào</div>
+                        : recentActivities.map((a, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
+                            <div style={{ width: 38, height: 38, background: a.bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>{a.icon}</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>{a.title}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>
+                                <span style={{ padding: '2px 8px', borderRadius: 10, background: BADGE_STYLES[a.badge as keyof typeof BADGE_STYLES].bg, color: BADGE_STYLES[a.badge as keyof typeof BADGE_STYLES].color, fontSize: 10, fontWeight: 700 }}>
+                                  {a.sub.split('·')[0]}
+                                </span>
+                                {' · '}{a.sub.split('·')[1]}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{a.time}</div>
+                          </div>
+                        ))}
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{a.time}</div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
+              </>
+            )}
+
+            {/* ── COLLECTOR overview ── */}
+            {user?.role === 'COLLECTOR' && (
+              <>
+                <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
+                  {[
+                    { icon: '🚚', label: 'Xem nhiệm vụ', action: () => setActiveNav('tasks') },
+                    { icon: '📋', label: 'Lịch sử thu gom', action: () => setActiveNav('history') },
+                    { icon: '🔔', label: 'Thông báo', action: () => setActiveNav('notifications') },
+                    { icon: '⚙️', label: 'Cài đặt', action: () => setActiveNav('settings') },
+                  ].map(a => (
+                    <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}>
+                      <div style={{ fontSize: 28, marginBottom: 10 }}>{a.icon}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{a.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: 28, background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.03))', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 20 }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>🚛 Trạng thái hôm nay</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>
+                    Vào mục <b>Tuyến thu gom</b> để xem các đơn được giao và cập nhật tiến trình. Sau khi hoàn thành, kiểm tra <b>Lịch sử</b> để xem kết quả.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* ── ENTERPRISE overview ── */}
+            {user?.role === 'ENTERPRISE' && (
+              <>
+                <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>⚡ Thao tác nhanh</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 36 }}>
+                  {[
+                    { icon: '🏭', label: 'Quản lý doanh nghiệp', action: () => setActiveNav('enterprise') },
+                    { icon: '🗺️', label: 'Bản đồ điều phối', action: () => setActiveNav('map') },
+                    { icon: '📊', label: 'Thống kê vận hành', action: () => setActiveNav('stats') },
+                    { icon: '🔔', label: 'Thông báo', action: () => setActiveNav('notifications') },
+                  ].map(a => (
+                    <div key={a.label} onClick={a.action} style={{ padding: 20, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 250ms' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(34,197,94,0.06)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}>
+                      <div style={{ fontSize: 28, marginBottom: 10 }}>{a.icon}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{a.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: 28, background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(20,184,166,0.03))', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 20 }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>🏭 Hướng dẫn vận hành</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>
+                    Vào <b>Quản lý doanh nghiệp</b> để điều phối tài xế và xử lý đơn. Dùng <b>Bản đồ điều phối</b> để quan sát trực quan. Xem <b>Thống kê vận hành</b> để theo dõi hiệu suất và đội xe.
+                  </p>
+                </div>
+              </>
+            )}
           </>
         )}
         <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }`}</style>

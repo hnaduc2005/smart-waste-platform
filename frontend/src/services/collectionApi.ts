@@ -59,4 +59,8 @@ export const collectionApi = {
     
   confirmCollection: (taskId: string, data: { photoUrl: string; weight: number }) => 
     api.post(`/tasks/${taskId}/confirm`, data).then(res => res.data),
+
+  /** Lấy tất cả task đang ON_THE_WAY — dùng cho enterprise fleet status */
+  getActiveTasks: () =>
+    api.get('/tasks/active').then(r => r.data),
 };

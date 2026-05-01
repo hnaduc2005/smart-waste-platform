@@ -6,38 +6,86 @@ import {
   Cell, PieChart, Pie, Legend
 } from 'recharts';
 
-const ENTERPRISE_API = '/api/v1/enterprises';
+import { userApi } from '../services/userApi';
+import { collectionApi } from '../services/collectionApi';
+import { useAuth } from '../context/AuthContext';
+
 const COLORS = ['#22c55e', '#14b8a6', '#f59e0b', '#ef4444'];
 
-interface SystemOverview {
-  totalActiveEnterprises: number;
-  totalVehicles: number;
-  availableVehicles: number;
-  onDutyVehicles: number;
-  maintenanceVehicles: number;
-  totalDailyCapacityTon: number;
-  systemUtilizationPct: number;
-  enterprises: {
-    id: number; name: string; serviceArea: string;
-    acceptedWasteTypes: string; dailyCapacityTon: number;
-    totalVehicles: number; availableVehicles: number;
-  }[];
-}
-
 export const EnterpriseStatsView = () => {
+  const { user } = useAuth();
   const [analyticsData, setAnalyticsData] = useState<DashboardData | null>(null);
-  const [overview, setOverview] = useState<SystemOverview | null>(null);
+  const [myEnterprise, setMyEnterprise] = useState<any>(null);
+  // myCollectors: tất cả collectors thuộc doanh nghiệp này
+  const [myCollectors, setMyCollectors] = useState<any[]>([]);
+  // onTheWayCollectorIds: tập hợp collectorId đang có task ON_THE_WAY
+  const [onTheWayCollectorIds, setOnTheWayCollectorIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([
-      analyticsApi.getDashboardData(),
-      enterpriseApi.getOverview(),
-    ]).then(([analyticsResult, overviewResult]) => {
-      if (analyticsResult.status === 'fulfilled') setAnalyticsData(analyticsResult.value);
-      if (overviewResult.status === 'fulfilled') setOverview(overviewResult.value);
-    }).finally(() => setLoading(false));
-  }, []);
+    const loadData = async () => {
+      try {
+        const [analyticsResult, enterpriseResult, collectorsResult, tasksResult] = await Promise.allSettled([
+          analyticsApi.getDashboardData(),
+          enterpriseApi.getMyEnterprise(user?.userId || ''),
+          userApi.getCollectors(),
+          collectionApi.getActiveTasks()  // lấy TaskAssignment đang ON_THE_WAY, có collectorId
+        ]);
+
+        if (analyticsResult.status === 'fulfilled') setAnalyticsData(analyticsResult.value);
+        
+        let ent = null;
+        if (enterpriseResult.status === 'fulfilled') {
+          ent = enterpriseResult.value;
+          setMyEnterprise(ent);
+        }
+
+        let filteredCollectors: any[] = [];
+        if (collectorsResult.status === 'fulfilled') {
+          const allCollectors = collectorsResult.value;
+          // Chỉ lấy collectors thuộc doanh nghiệp này
+          filteredCollectors = allCollectors.filter((c: any) => !ent?.name || c.companyName === ent.name);
+          setMyCollectors(filteredCollectors);
+        }
+
+        // Xác định collectors đang đi gom từ TaskAssignment có status ON_THE_WAY
+        if (tasksResult.status === 'fulfilled') {
+          const activeTasks: any[] = tasksResult.value;
+          // Dùng String(c.id) — đây là UUID của collector, khớp với collectorId trong TaskAssignment
+          const collectorIdSet = new Set(filteredCollectors.map((c: any) => String(c.id)));
+          const activeIds = new Set<string>();
+          activeTasks.forEach((t: any) => {
+            // TaskAssignment có trường collectorId (UUID string)
+            const cid = t.collectorId ? String(t.collectorId) : null;
+            if (cid && collectorIdSet.has(cid)) {
+              activeIds.add(cid);
+            }
+          });
+          setOnTheWayCollectorIds(activeIds);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user?.userId) {
+      loadData();
+    }
+    // Refresh mỗi 30 giây
+    const interval = setInterval(() => { if (user?.userId) loadData(); }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.userId]);
+
+  // Xe sẵn sàng = collectors đã đăng nhập vào app (isOnline === true)
+  // Nếu isOnline là null/undefined thì coi như offline, không đếm vào
+  const readyVehicles = myCollectors.filter((c: any) => c.isOnline === true);
+  // Xe đang đi gom = collectors có task ON_THE_WAY trong DB
+  // Fallback về isOnline === false nếu không có task data từ API
+  const collectingVehicles = onTheWayCollectorIds.size > 0
+    ? myCollectors.filter((c: any) => onTheWayCollectorIds.has(String(c.id)))
+    : myCollectors.filter((c: any) => c.isOnline === false);
+
+  // Build collectorIdSet dùng c.id (UUID string)
+  // (chỉ duyết lại khi build set trong useEffect)
 
   // Tính tổng khối lượng theo loại rác từ weekly data
   const wasteByType = analyticsData ? [
@@ -75,8 +123,7 @@ export const EnterpriseStatsView = () => {
         {[
           { label: 'Tổng khối lượng tuần', value: `${totalWeightKg.toLocaleString()} kg`, icon: '⚖️', color: 'rgba(34,197,94,0.1)' },
           { label: 'Hiệu suất thu gom TB', value: `${avgEfficiency}%`, icon: '📈', color: 'rgba(168,85,247,0.1)' },
-          { label: 'Doanh nghiệp hoạt động', value: overview?.totalActiveEnterprises ?? '—', icon: '🏭', color: 'rgba(59,130,246,0.1)' },
-          { label: 'Công suất hệ thống', value: `${overview?.totalDailyCapacityTon ?? '—'} tấn/ngày`, icon: '🏗️', color: 'rgba(245,158,11,0.1)' },
+          { label: 'Công suất của bạn', value: `${myEnterprise?.dailyCapacityTon ?? 0} tấn/ngày`, icon: '🏗️', color: 'rgba(245,158,11,0.1)' },
         ].map(s => (
           <div key={s.label} style={{ padding: 24, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20 }}>
             <div style={{ width: 40, height: 40, background: s.color, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 12 }}>{s.icon}</div>
@@ -87,21 +134,18 @@ export const EnterpriseStatsView = () => {
       </div>
 
       {/* KPI Cards — hàng 2: Fleet Status */}
-      {overview && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          {[
-            { label: 'Xe sẵn sàng', value: overview.availableVehicles, icon: '🟢', color: 'rgba(34,197,94,0.15)' },
-            { label: 'Xe đang đi gom', value: overview.onDutyVehicles, icon: '🟡', color: 'rgba(245,158,11,0.15)' },
-            { label: 'Xe bảo trì', value: overview.maintenanceVehicles, icon: '🔴', color: 'rgba(239,68,68,0.15)' },
-          ].map(s => (
-            <div key={s.label} style={{ padding: 20, background: s.color, border: '1px solid var(--border)', borderRadius: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-              <div style={{ fontSize: 32, fontWeight: 900 }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+        {[
+          { label: 'Xe sẵn sàng',   value: readyVehicles.length,     icon: '🟢', color: 'rgba(34,197,94,0.15)' },
+          { label: 'Xe đang đi gom', value: collectingVehicles.length, icon: '🟡', color: 'rgba(245,158,11,0.15)' },
+        ].map(s => (
+          <div key={s.label} style={{ padding: 20, background: s.color, border: '1px solid var(--border)', borderRadius: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
+            <div style={{ fontSize: 32, fontWeight: 900 }}>{s.value}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
 
       {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
@@ -194,44 +238,6 @@ export const EnterpriseStatsView = () => {
         </div>
       )}
 
-      {/* Bảng doanh nghiệp */}
-      {overview?.enterprises && overview.enterprises.length > 0 && (
-        <div style={{ padding: 24, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20 }}>
-          <h3 style={{ fontSize: 18, margin: '0 0 20px' }}>Danh sách doanh nghiệp đang hoạt động</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                  {['Tên doanh nghiệp', 'Khu vực', 'Loại rác', 'Công suất/ngày', 'Xe sẵn sàng'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {overview.enterprises.map(e => (
-                  <tr key={e.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '12px 14px', fontWeight: 600 }}>{e.name}</td>
-                    <td style={{ padding: '12px 14px', color: 'var(--text-secondary)' }}>{e.serviceArea || '—'}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {e.acceptedWasteTypes?.split(',').map(t => (
-                        <span key={t} style={{ display: 'inline-block', fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(34,197,94,0.15)', color: '#4ade80', marginRight: 4 }}>
-                          {t.trim()}
-                        </span>
-                      ))}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>{e.dailyCapacityTon} tấn</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ color: e.availableVehicles > 0 ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-                        {e.availableVehicles}/{e.totalVehicles}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

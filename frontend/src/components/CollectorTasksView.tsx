@@ -74,6 +74,11 @@ export const CollectorTasksView = () => {
         type: 'SYSTEM',
         isRead: false
       }).catch(console.warn);
+
+      // Cập nhật trạng thái xe thành Đang đi gom (isOnline = false)
+      if (user?.userId) {
+        userApi.updateProfile(user.userId, { isOnline: false }).catch(console.warn);
+      }
     }
 
     // Call real status-update API to sync across services
@@ -147,6 +152,14 @@ export const CollectorTasksView = () => {
         type: 'SYSTEM',
         isRead: false
       }).catch(console.warn);
+
+      // Kiểm tra xem còn đơn nào đang 'ON_THE_WAY' không, nếu không thì chuyển về 'Sẵn sàng' (isOnline = true)
+      if (user?.userId) {
+        const hasOtherOnTheWay = tasks.some(t => t.status === 'ON_THE_WAY' && t.id !== selectedTask.id);
+        if (!hasOtherOnTheWay) {
+          userApi.updateProfile(user.userId, { isOnline: true }).catch(console.warn);
+        }
+      }
 
       setStatusMsg({ type: 'success', text: '🎉 Đã ghi nhận hoàn thành cuốc rác!' });
       setTimeout(() => setStatusMsg(null), 4000);
