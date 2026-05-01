@@ -164,4 +164,25 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> getTotalUsers() {
         return ResponseEntity.ok(authService.getTotalUsers());
     }
+
+    @PutMapping("/admin/users/{userId}/lock")
+    public ResponseEntity<Map<String, Object>> setUserLocked(
+            @PathVariable java.util.UUID userId,
+            @RequestBody Map<String, Boolean> body) {
+        boolean locked = Boolean.TRUE.equals(body.get("locked"));
+        return ResponseEntity.ok(authService.setUserLocked(userId, locked));
+    }
+
+    @PutMapping("/admin/users/{userId}/role")
+    public ResponseEntity<Map<String, Object>> changeUserRole(
+            @PathVariable java.util.UUID userId,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(authService.changeRole(userId, body.get("role")));
+    }
+
+    @GetMapping("/admin/users")
+    public ResponseEntity<java.util.List<Map<String, Object>>> getAllUsers(
+            @RequestParam(defaultValue = "ALL") String role) {
+        return ResponseEntity.ok(authService.getAllUsersByRole(role));
+    }
 }

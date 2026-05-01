@@ -269,6 +269,58 @@ public class AuthService {
 
     public Map<String, Object> getTotalUsers() {
         long total = userAuthRepository.count();
-        return Map.of("count", total, "trend", 0.0); // Trend có thể tính bằng công thức tháng trước
+        return Map.of("count", total, "trend", 0.0);
+    }
+
+    @Transactional
+    public Map<String, Object> setUserLocked(java.util.UUID userId, boolean locked) {
+        UserAuth user = userAuthRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        user.setStatus(locked ? com.ecocycle.auth.domain.enums.UserStatus.LOCKED
+                              : com.ecocycle.auth.domain.enums.UserStatus.ACTIVE);
+        userAuthRepository.save(user);
+        log.info("Admin {} tài khoản: {}", locked ? "khoá" : "mở khoá", userId);
+        return Map.of("userId", userId, "locked", locked, "status", user.getStatus().name());
+    }
+
+    @Transactional
+    public Map<String, Object> changeRole(java.util.UUID userId, String newRole) {
+        UserAuth user = userAuthRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        com.ecocycle.auth.domain.enums.Role role;
+        try {
+            role = com.ecocycle.auth.domain.enums.Role.valueOf(newRole.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Role không hợp lệ: " + newRole);
+        }
+        user.setRole(role);
+        userAuthRepository.save(user);
+        log.info("Admin đổi role user {} -> {}", userId, newRole);
+        return Map.of("userId", userId, "role", role.name(), "message", "Phân quyền thành công");
+    }
+
+    public java.util.List<Map<String, Object>> getAllUsersByRole(String role) {
+        java.util.List<UserAuth> users;
+        if (role == null || role.equalsIgnoreCase("ALL")) {
+            users = userAuthRepository.findAll();
+        } else {
+            try {
+                users = userAuthRepository.findByRole(
+                        com.ecocycle.auth.domain.enums.Role.valueOf(role.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                users = userAuthRepository.findAll();
+            }
+        }
+        return users.stream().map(u -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("id", u.getId());
+            m.put("username", u.getUsername());
+            m.put("email", u.getEmail());
+            m.put("role", u.getRole().name());
+            m.put("status", u.getStatus().name());
+            m.put("createdAt", u.getCreatedAt() != null ? u.getCreatedAt().toString() : null);
+            m.put("locked", u.getStatus() == com.ecocycle.auth.domain.enums.UserStatus.LOCKED);
+            return m;
+        }).toList();
     }
 }

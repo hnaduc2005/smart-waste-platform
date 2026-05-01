@@ -51,6 +51,7 @@ public class SecurityConfig {
                     "/api/v1/auth/forgot-password",
                     "/api/v1/auth/reset-password",
                     "/api/v1/auth/users/**",
+                    "/api/v1/auth/admin/users/**",  // internal Feign từ admin-service
                     "/actuator/**"
                 ).permitAll()
                 .anyRequest().authenticated()
