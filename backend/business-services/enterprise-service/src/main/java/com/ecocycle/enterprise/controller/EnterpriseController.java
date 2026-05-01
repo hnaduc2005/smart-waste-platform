@@ -43,6 +43,9 @@ public class EnterpriseController {
     public ResponseEntity<List<Enterprise>> search(
             @RequestParam(required = false) String wasteType,
             @RequestParam(required = false) String district) {
+        if (wasteType != null && district != null) {
+            return ResponseEntity.ok(enterpriseService.findByDistrictAndWasteType(district, wasteType));
+        }
         if (wasteType != null) {
             return ResponseEntity.ok(enterpriseService.findByWasteType(wasteType));
         }

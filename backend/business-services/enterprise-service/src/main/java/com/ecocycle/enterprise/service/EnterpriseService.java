@@ -73,6 +73,11 @@ public class EnterpriseService {
         return enterpriseRepository.findActiveByServiceArea(district);
     }
 
+    /** Tìm doanh nghiệp phục vụ một khu vực cụ thể và nhận loại rác cụ thể */
+    public List<Enterprise> findByDistrictAndWasteType(String district, String wasteType) {
+        return enterpriseRepository.findActiveByServiceAreaAndWasteType(district, wasteType.toUpperCase());
+    }
+
     // ── Phân tích năng lực ─────────────────────────────────────────────────
 
     /**

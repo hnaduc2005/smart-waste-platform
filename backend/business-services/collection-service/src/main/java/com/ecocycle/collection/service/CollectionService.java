@@ -234,6 +234,11 @@ public class CollectionService {
             java.util.List.of(RequestStatus.ASSIGNED, RequestStatus.ON_THE_WAY));
     }
 
+    /** Lấy tất cả TaskAssignment đang ON_THE_WAY (dùng cho enterprise fleet status) */
+    public List<TaskAssignment> getActiveOnTheWayTasks() {
+        return taskRepository.findByStatus(RequestStatus.ON_THE_WAY);
+    }
+
     public List<com.ecocycle.collection.dto.CollectorHistoryItemDto> getCollectorHistory(UUID collectorId) {
         List<TaskAssignment> completedTasks = taskRepository.findByCollectorIdAndStatusIn(collectorId,
             java.util.List.of(RequestStatus.COMPLETED, RequestStatus.COLLECTED));
@@ -352,15 +357,30 @@ public class CollectionService {
         // Kiểm tra nếu là địa chỉ text chứa từ khoá quận/huyện
         if (!location.matches("^[0-9.,\\s]+$")) {
             String lc = location.toLowerCase();
-            String[] keywords = {"quận 1", "quận 2", "quận 3", "quận 4", "quận 5",
-                    "quận 6", "quận 7", "quận 8", "quận 9", "quận 10", "quận 11", "quận 12",
+
+            if (lc.contains("quận 2") || lc.contains("quận 9") || lc.contains("thủ đức") || lc.contains("thu duc") || lc.contains("tp. thủ đức") || lc.contains("tp.thủ đức") || lc.contains("thành phố thủ đức")) {
+                return "Thành phố Thủ Đức";
+            }
+
+            // Đưa các quận 2 chữ số lên trước để tránh việc "quận 1" ăn mất "quận 10", "quận 11", "quận 12"
+            String[] keywords = {
+                    "quận 10", "quận 11", "quận 12",
+                    "quận 1", "quận 3", "quận 4", "quận 5",
+                    "quận 6", "quận 7", "quận 8", 
                     "bình thạnh", "gò vấp", "phú nhuận", "tân bình", "tân phú",
-                    "bình tân", "thủ đức", "hóc môn", "củ chi", "bình chánh",
+                    "bình tân", "hóc môn", "củ chi", "bình chánh",
                     "nhà bè", "cần giờ"};
             for (String kw : keywords) {
                 if (lc.contains(kw)) {
-                    // Viết hoa chữ cái đầu
-                    return Character.toUpperCase(kw.charAt(0)) + kw.substring(1);
+                    // Viết hoa chữ cái đầu của mỗi từ
+                    String[] words = kw.split(" ");
+                    StringBuilder sb = new StringBuilder();
+                    for(String w : words) {
+                        if (w.length() > 0) {
+                            sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1)).append(" ");
+                        }
+                    }
+                    return sb.toString().trim();
                 }
             }
             return "Khác";
@@ -382,14 +402,14 @@ public class CollectionService {
     private String mapCoordsToDistrict(double lat, double lng) {
         // Quận nội thành (mở rộng bounding box để khớp thực tế GPS)
         if (lat >= 10.768 && lat <= 10.795 && lng >= 106.688 && lng <= 106.715) return "Quận 1";
-        if (lat >= 10.755 && lat <= 10.800 && lng >= 106.715 && lng <= 106.780) return "Quận 2";
+        if (lat >= 10.755 && lat <= 10.800 && lng >= 106.715 && lng <= 106.780) return "Thành phố Thủ Đức";
         if (lat >= 10.778 && lat <= 10.805 && lng >= 106.672 && lng <= 106.700) return "Quận 3";
         if (lat >= 10.740 && lat <= 10.772 && lng >= 106.692 && lng <= 106.728) return "Quận 4";
         if (lat >= 10.745 && lat <= 10.780 && lng >= 106.648 && lng <= 106.685) return "Quận 5";
         if (lat >= 10.728 && lat <= 10.760 && lng >= 106.615 && lng <= 106.665) return "Quận 6";
         if (lat >= 10.710 && lat <= 10.758 && lng >= 106.690 && lng <= 106.745) return "Quận 7";
         if (lat >= 10.712 && lat <= 10.752 && lng >= 106.605 && lng <= 106.668) return "Quận 8";
-        if (lat >= 10.820 && lat <= 10.900 && lng >= 106.720 && lng <= 106.810) return "Quận 9";
+        if (lat >= 10.820 && lat <= 10.900 && lng >= 106.720 && lng <= 106.810) return "Thành phố Thủ Đức";
         if (lat >= 10.762 && lat <= 10.797 && lng >= 106.648 && lng <= 106.690) return "Quận 10";
         if (lat >= 10.748 && lat <= 10.785 && lng >= 106.625 && lng <= 106.668) return "Quận 11";
         if (lat >= 10.832 && lat <= 10.895 && lng >= 106.668 && lng <= 106.720) return "Quận 12";
@@ -400,14 +420,14 @@ public class CollectionService {
         if (lat >= 10.785 && lat <= 10.832 && lng >= 106.618 && lng <= 106.668) return "Tân Bình";
         if (lat >= 10.772 && lat <= 10.820 && lng >= 106.578 && lng <= 106.625) return "Tân Phú";
         if (lat >= 10.685 && lat <= 10.745 && lng >= 106.560 && lng <= 106.628) return "Bình Tân";
-        if (lat >= 10.820 && lat <= 10.920 && lng >= 106.755 && lng <= 106.850) return "Thủ Đức";
+        if (lat >= 10.820 && lat <= 10.920 && lng >= 106.755 && lng <= 106.850) return "Thành phố Thủ Đức";
         if (lat >= 10.860 && lat <= 10.990 && lng >= 106.590 && lng <= 106.700) return "Hóc Môn";
         if (lat >= 10.900 && lat <= 11.150 && lng >= 106.350 && lng <= 106.620) return "Củ Chi";
         if (lat >= 10.620 && lat <= 10.720 && lng >= 106.540 && lng <= 106.670) return "Bình Chánh";
         if (lat >= 10.620 && lat <= 10.720 && lng >= 106.680 && lng <= 106.800) return "Nhà Bè";
         if (lat >= 10.350 && lat <= 10.640 && lng >= 106.700 && lng <= 107.050) return "Cần Giờ";
-        // Nếu vẫn thuộc vùng TP.HCM chung
-        return "TP.HCM";
+        // Nếu vẫn thuộc vùng TP.HCM chung (hoặc nằm ngoài hẳn 24 quận huyện)
+        return "Ngoài TP.HCM";
     }
 
     /**
@@ -423,6 +443,7 @@ public class CollectionService {
                 .fromHttpUrl(enterpriseServiceUrl)
                 .path("/api/v1/enterprises/search")
                 .queryParam("district", district)
+                .queryParam("wasteType", request.getType().name())
                 .encode()
                 .build().toUri();
 
@@ -479,6 +500,7 @@ public class CollectionService {
                 .fromHttpUrl(enterpriseServiceUrl)
                 .path("/api/v1/enterprises/search")
                 .queryParam("district", district)
+                .queryParam("wasteType", request.getType().name())
                 .encode()
                 .build().toUri();
 

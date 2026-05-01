@@ -130,6 +130,12 @@ public class CollectionController {
         return ResponseEntity.ok(collectionService.getCollectorTasks(collectorId));
     }
 
+    /** GET /tasks/active — Lấy tất cả TaskAssignment đang ON_THE_WAY (dùng cho enterprise fleet status) */
+    @GetMapping("/tasks/active")
+    public ResponseEntity<List<TaskAssignment>> getActiveOnTheWayTasks() {
+        return ResponseEntity.ok(collectionService.getActiveOnTheWayTasks());
+    }
+
     @GetMapping("/tasks/collector/{collectorId}/history")
     public ResponseEntity<List<com.ecocycle.collection.dto.CollectorHistoryItemDto>> getCollectorHistory(
             @PathVariable UUID collectorId) {
