@@ -175,12 +175,17 @@ public class RewardController {
         Double pointsPerKg = body.get("pointsPerKg");
         if (pointsPerKg == null || pointsPerKg < 0) return ResponseEntity.badRequest().build();
 
+        Double invalidMultiplier = body.get("invalidMultiplier");
+
         GlobalRewardRule rule = globalRewardRuleRepository.findByType(type).orElseGet(() -> {
             GlobalRewardRule r = new GlobalRewardRule();
             r.setType(type);
             return r;
         });
         rule.setPointsPerKg(pointsPerKg);
+        if (invalidMultiplier != null && invalidMultiplier >= 0 && invalidMultiplier <= 1) {
+            rule.setInvalidMultiplier(invalidMultiplier);
+        }
         return ResponseEntity.ok(globalRewardRuleRepository.save(rule));
     }
 }

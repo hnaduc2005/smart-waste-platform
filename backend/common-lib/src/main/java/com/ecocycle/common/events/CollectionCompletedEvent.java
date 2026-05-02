@@ -20,4 +20,5 @@ public class CollectionCompletedEvent {
     private Instant completedAt;
     private String location;  // "lat,lng" hoặc địa chỉ dạng text
     private String district;  // Tên quận/huyện (nếu có)
+    private Boolean isValid;  // Xác nhận rác hợp lệ hay không
 }

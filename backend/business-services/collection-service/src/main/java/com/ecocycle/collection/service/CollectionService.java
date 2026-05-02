@@ -335,6 +335,7 @@ public class CollectionService {
                 .completedAt(java.time.Instant.now())
                 .location(location)
                 .district(district)
+                .isValid(dto.getIsValid() != null ? dto.getIsValid() : true)
                 .build();
 
         kafkaTemplate.send("waste.collection.completed", event);

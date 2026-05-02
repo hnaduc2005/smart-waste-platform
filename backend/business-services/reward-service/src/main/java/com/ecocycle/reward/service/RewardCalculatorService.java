@@ -37,11 +37,21 @@ public class RewardCalculatorService {
                     .orElseThrow(() -> new IllegalArgumentException("No rule found for waste type: " + wasteType));
 
             double pointsEarned = event.getWeightInKg() * rule.getPointsPerKg();
+            
+            boolean isInvalid = event.getIsValid() != null && !event.getIsValid();
+            if (isInvalid) {
+                double multiplier = rule.getInvalidMultiplier() != null ? rule.getInvalidMultiplier() : 0.2;
+                pointsEarned = pointsEarned * multiplier;
+                if (pointsEarned <= 0) {
+                    log.info("Waste request {} was marked as invalid and multiplier is 0. No points awarded.", event.getWasteRequestId());
+                    return;
+                }
+            }
 
             PointTransaction transaction = new PointTransaction();
             transaction.setCitizenId(UUID.fromString(event.getCitizenId()));
             transaction.setAmount(pointsEarned);
-            transaction.setReason("Phan loai rac: " + wasteType.name() + " (" + event.getWeightInKg() + "kg)");
+            transaction.setReason(isInvalid ? "Phan loai sai: " + wasteType.name() + " (" + event.getWeightInKg() + "kg) - Khuyen khich" : "Phan loai rac: " + wasteType.name() + " (" + event.getWeightInKg() + "kg)");
             pointTransactionRepository.save(transaction);
 
             // Fetch total points for the citizen to send in the event

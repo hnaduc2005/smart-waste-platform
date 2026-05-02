@@ -27,6 +27,9 @@ public class GlobalRewardRule {
     @Column(name = "points_per_kg", nullable = false)
     private Double pointsPerKg;
 
+    @Column(name = "invalid_multiplier")
+    private Double invalidMultiplier = 0.2; // Mặc định nhận 20% số điểm nếu phân loại sai
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
