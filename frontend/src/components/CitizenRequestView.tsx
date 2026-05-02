@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { notificationApi } from '../services/notificationApi';
 
 const STATUS_MAP = {
-  PENDING: { label: 'Chờ xử lý', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
-  ASSIGNED: { label: 'Đã phân công', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
-  COLLECTED: { label: 'Đã thu gom', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
-  COMPLETED: { label: 'Hoàn thành', color: '#059669', bg: 'rgba(5, 150, 105, 0.15)' },
-  CANCELLED: { label: 'Đã hủy', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+  PENDING:    { label: 'Chờ xử lý',    color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+  ASSIGNED:   { label: 'Đã phân công', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+  ON_THE_WAY: { label: '🚚 Đang đến',  color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' },
+  COLLECTED:  { label: 'Đã thu gom',   color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+  COMPLETED:  { label: 'Hoàn thành',   color: '#059669', bg: 'rgba(5, 150, 105, 0.15)' },
+  CANCELLED:  { label: 'Đã hủy',       color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
 };
 
 const WASTE_TYPES = [
@@ -514,10 +515,11 @@ export const CitizenRequestView = () => {
                       <td style={{ padding: '16px 24px', fontSize: 14, color: 'var(--text-secondary)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {r.description || '-'}
                       </td>
-                      <td style={{ padding: '16px 24px' }}>
+                      <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
                         <span style={{
                           background: statusConf.bg, color: statusConf.color,
-                          padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700
+                          padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                          whiteSpace: 'nowrap', display: 'inline-block'
                         }}>
                           {statusConf.label}
                         </span>

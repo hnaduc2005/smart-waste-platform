@@ -27,6 +27,7 @@ export const CollectorTasksView = () => {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [photoUrl, setPhotoUrl] = useState('');
   const [weight, setWeight] = useState<number | ''>('');
+  const [isValid, setIsValid] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchTasks = async () => {
@@ -130,15 +131,18 @@ export const CollectorTasksView = () => {
       setSubmitting(true);
       await collectionApi.confirmCollection(selectedTask.id, {
         photoUrl: photoUrl || 'https://via.placeholder.com/400?text=Collected+Waste',
-        weight: Number(weight)
+        weight: Number(weight),
+        isValid: isValid
       });
       
       // Notify citizen
       if (selectedTask.request?.citizenId) {
         notificationApi.create({
           userId: selectedTask.request.citizenId,
-          title: 'Rác của bạn đã được thu gom thành công! ✅',
-          message: `Đơn (ID: ${selectedTask.request.id?.substring(0,8)}) nặng ${weight}kg đã thu gom xong. Hệ thống đang tính điểm thưởng cho bạn.`,
+          title: isValid ? 'Rác của bạn đã được thu gom thành công! ✅' : 'Đơn rác sai phân loại ⚠️',
+          message: isValid 
+            ? `Đơn (ID: ${selectedTask.request.id?.substring(0,8)}) nặng ${weight}kg đã thu gom xong. Hệ thống đang cộng điểm thưởng cho bạn.`
+            : `Đơn (ID: ${selectedTask.request.id?.substring(0,8)}) đã được thu gom. Tuy nhiên rác chưa phân loại đúng nên bạn chỉ nhận được một phần điểm nhỏ để khuyến khích.`,
           type: 'SYSTEM',
           isRead: false
         }).catch(console.warn);
@@ -166,6 +170,7 @@ export const CollectorTasksView = () => {
       setSelectedTask(null);
       setPhotoUrl('');
       setWeight('');
+      setIsValid(true);
       fetchTasks();
     } catch (err: any) {
       console.error(err);
@@ -329,8 +334,22 @@ export const CollectorTasksView = () => {
                 </div>
               </div>
 
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: 20, borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={isValid} onChange={(e) => setIsValid(e.target.checked)} style={{ width: 20, height: 20, accentColor: '#10b981' }} />
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: isValid ? '#10b981' : '#ef4444' }}>
+                      {isValid ? '✅ Rác phân loại hợp lệ' : '❌ Rác KHÔNG hợp lệ'}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                      Bỏ chọn nếu người dân phân loại sai. Đơn vẫn sẽ được dọn nhưng người dân sẽ chỉ nhận được điểm khuyến khích (tùy vào cấu hình của doanh nghiệp).
+                    </div>
+                  </div>
+                </label>
+              </div>
+
               <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-                <button type="button" onClick={() => { setSelectedTask(null); setPhotoUrl(''); setWeight(''); }}
+                <button type="button" onClick={() => { setSelectedTask(null); setPhotoUrl(''); setWeight(''); setIsValid(true); }}
                   style={{ flex: 1, padding: '16px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-secondary)', borderRadius: 16, fontSize: 15, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}

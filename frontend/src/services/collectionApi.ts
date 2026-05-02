@@ -57,7 +57,7 @@ export const collectionApi = {
   updateTaskStatus: (taskId: string, status: string) =>
     api.patch(`/tasks/${taskId}/status?status=${status}`).then(r => r.data),
     
-  confirmCollection: (taskId: string, data: { photoUrl: string; weight: number }) => 
+  confirmCollection: (taskId: string, data: { photoUrl: string; weight: number; isValid?: boolean }) => 
     api.post(`/tasks/${taskId}/confirm`, data).then(res => res.data),
 
   /** Lấy tất cả task đang ON_THE_WAY — dùng cho enterprise fleet status */

@@ -12,6 +12,7 @@ export const adminApi = {
   // Dashboard
   getStats: () => api.get('/admin/dashboard/stats').then(r => r.data),
   getCharts: () => api.get('/admin/dashboard/charts').then(r => r.data),
+  getRecentUsers: () => api.get('/admin/dashboard/users/recent').then(r => r.data),
 
   // Users — từ auth-service (có email, createdAt, status, role đầy đủ)
   getAllUsers: (role = 'ALL') => api.get('/admin/dashboard/users', { params: { role } }).then(r => r.data),
