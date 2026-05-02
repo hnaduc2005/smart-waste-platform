@@ -37,4 +37,10 @@ export const rewardApi = {
 
   redeemReward: (data: { citizenId: string, cost: number, rewardTitle: string }): Promise<any> =>
     api.post('/redeem', data).then(res => res.data),
+
+  getRules: (): Promise<any[]> =>
+    api.get('/rules').then(res => res.data),
+
+  updateRule: (wasteType: string, data: { pointsPerKg: number, invalidMultiplier?: number }): Promise<any> =>
+    api.put(`/rules/${wasteType}`, data).then(res => res.data),
 };

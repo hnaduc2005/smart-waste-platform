@@ -216,11 +216,11 @@ export const EnterpriseDashboardView = () => {
     } catch { showToast('error', '❌ Không thể lưu thông tin'); }
   };
 
-  const handleSaveRule = async (wasteType: string, pointsPerKg: number) => {
+  const handleSaveRule = async (wasteType: string, pointsPerKg: number, invalidMultiplier: number) => {
     try {
-      const updated = await enterpriseApi.updateRewardRule(wasteType, pointsPerKg);
-      setRewardRules(r => r.map(x => x.type === wasteType ? { ...x, pointsPerKg: updated.pointsPerKg } : x));
-      showToast('success', `✅ Đã cập nhật điểm cho ${WASTE_LABELS[wasteType]?.label}`);
+      const updated = await enterpriseApi.updateRewardRule(wasteType, pointsPerKg, invalidMultiplier);
+      setRewardRules(r => r.map(x => x.type === wasteType ? { ...x, pointsPerKg: updated.pointsPerKg, invalidMultiplier: updated.invalidMultiplier } : x));
+      showToast('success', `✅ Đã cập nhật cấu hình điểm cho ${WASTE_LABELS[wasteType]?.label}`);
     } catch { showToast('error', '❌ Không thể lưu quy tắc điểm'); }
   };
 
@@ -510,21 +510,44 @@ export const EnterpriseDashboardView = () => {
   );
 };
 
-function RuleCard({ rule, wl, onSave }: { rule: any; wl: any; onSave: (t:string, p:number)=>void }) {
+function RuleCard({ rule, wl, onSave }: { rule: any; wl: any; onSave: (t:string, p:number, m:number)=>void }) {
   const [pts, setPts] = useState<number>(rule.pointsPerKg || 0);
+  const [pct, setPct] = useState<number>(Math.round((rule.invalidMultiplier ?? 0.2) * 100));
   return (
-    <div style={{ padding:24, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:18, display:'flex', alignItems:'center', gap:18 }}>
-      <div style={{ width:52, height:52, background:'rgba(255,255,255,0.05)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>{wl.icon}</div>
-      <div style={{ flex:1 }}>
-        <div style={{ fontWeight:700, marginBottom:10 }}>{wl.label}</div>
+    <div style={{ padding:24, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:18, display:'flex', flexDirection:'column', gap:18 }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+        <div style={{ width:52, height:52, background:'rgba(255,255,255,0.05)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>{wl.icon}</div>
+        <div style={{ fontWeight:700, fontSize:16 }}>{wl.label}</div>
+      </div>
+
+      {/* Điểm hợp lệ */}
+      <div>
+        <div style={{ fontSize:12, color:'var(--text-secondary)', fontWeight:600, marginBottom:8 }}>✅ Điểm khi phân loại ĐÚNG</div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <input type="number" min={0} step={0.5} value={pts} onChange={e => setPts(parseFloat(e.target.value))}
-            style={{ width:80, background:'var(--bg-input)', border:'1px solid var(--border)', padding:'8px', borderRadius:8, color:'var(--green-400)', fontSize:18, fontWeight:800, textAlign:'center' }} />
+            style={{ width:90, background:'var(--bg-input)', border:'1px solid rgba(34,197,94,0.4)', padding:'10px', borderRadius:8, color:'var(--green-400)', fontSize:20, fontWeight:800, textAlign:'center' }} />
           <span style={{ color:'var(--text-secondary)', fontSize:13 }}>điểm / kg</span>
-          <button onClick={() => onSave(rule.type, pts)}
-            style={{ padding:'8px 16px', background:'var(--green-500)', color:'white', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer', fontSize:13 }}>Lưu</button>
         </div>
       </div>
+
+      {/* Tỉ lệ khi sai */}
+      <div>
+        <div style={{ fontSize:12, color:'#f59e0b', fontWeight:600, marginBottom:8 }}>⚠️ Tỷ lệ điểm khi phân loại SAI (%)</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <input type="number" min={0} max={100} step={1} value={pct} onChange={e => setPct(parseFloat(e.target.value))}
+            style={{ width:90, background:'var(--bg-input)', border:'1px solid rgba(245,158,11,0.4)', padding:'10px', borderRadius:8, color:'#f59e0b', fontSize:20, fontWeight:800, textAlign:'center' }} />
+          <span style={{ color:'#f59e0b', fontSize:13 }}>% điểm gốc</span>
+        </div>
+        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
+          Ví dụ: {pct}% × {pts} đ/kg = <b style={{color:'#f59e0b'}}>{((pct/100)*pts).toFixed(1)} điểm/kg</b> khi sai loại
+        </div>
+      </div>
+
+      <button onClick={() => onSave(rule.type, pts, pct / 100)}
+        style={{ padding:'10px 20px', background:'var(--green-500)', color:'white', border:'none', borderRadius:10, fontWeight:700, cursor:'pointer', fontSize:14 }}>
+        💾 Lưu cấu hình
+      </button>
     </div>
   );
 }

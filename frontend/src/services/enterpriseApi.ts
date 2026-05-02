@@ -54,6 +54,6 @@ export const enterpriseApi = {
 
   // Reward rules
   getRewardRules: () => api.get('/rewards/rules').then(res => res.data),
-  updateRewardRule: (wasteType: string, pointsPerKg: number) =>
-    api.put(`/rewards/rules/${wasteType}`, { pointsPerKg }).then(res => res.data),
+  updateRewardRule: (wasteType: string, pointsPerKg: number, invalidMultiplier?: number) =>
+    api.put(`/rewards/rules/${wasteType}`, { pointsPerKg, invalidMultiplier }).then(res => res.data),
 };

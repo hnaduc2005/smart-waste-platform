@@ -7,7 +7,9 @@ import { CollectorTasksView } from '../components/CollectorTasksView';
 import { CollectorHistoryView } from '../components/CollectorHistoryView';
 import { rewardApi } from '../services/rewardApi';
 import { RewardView } from '../components/RewardView';
+import { RewardConfigView } from '../components/RewardConfigView';
 import { CitizenReportView } from '../components/CitizenReportView';
+import { CitizenComplaintView } from '../components/CitizenComplaintView';
 import { NotificationView } from '../components/NotificationView';
 import { UserProfileView } from '../components/UserProfileView';
 import { EnterpriseDashboardView } from '../components/EnterpriseDashboardView';
@@ -38,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: '🗺️', label: 'Bản đồ điều phối', id: 'map', roles: ['ENTERPRISE'] },
   { icon: '🏆', label: 'Điểm thưởng', id: 'rewards', roles: ['CITIZEN'] },
   { icon: '📊', label: 'Báo cáo', id: 'reports', roles: ['CITIZEN'] },
+  { icon: '📩', label: 'Khiếu nại', id: 'complaints', roles: ['CITIZEN'] },
   { icon: '🔔', label: 'Thông báo', id: 'notifications', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
   { icon: '⚙️', label: 'Cài đặt', id: 'settings', roles: ['CITIZEN', 'COLLECTOR', 'ENTERPRISE'] },
 ];
@@ -334,6 +337,7 @@ export default function DashboardPage() {
         {activeNav === 'history' && user?.role === 'COLLECTOR' && <CollectorHistoryView />}
         {activeNav === 'rewards' && user?.role === 'CITIZEN' && <RewardView />}
         {activeNav === 'reports' && user?.role === 'CITIZEN' && <CitizenReportView />}
+        {activeNav === 'complaints' && user?.role === 'CITIZEN' && <CitizenComplaintView />}
         {activeNav === 'enterprise' && user?.role === 'ENTERPRISE' && <EnterpriseDashboardView />}
         {activeNav === 'stats' && user?.role === 'ENTERPRISE' && <EnterpriseStatsView />}
         {activeNav === 'notifications' && <NotificationView onNavigateToTasks={() => setActiveNav('tasks')} />}
