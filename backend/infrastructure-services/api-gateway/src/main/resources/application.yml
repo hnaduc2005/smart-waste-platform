@@ -27,6 +27,14 @@ spring:
           filters:
             - AuthenticationFilter
 
+        # === COMPLAINTS (user-service) ===
+        - id: complaint-route
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/complaints/**
+          filters:
+            - AuthenticationFilter
+
         # === COLLECTION SERVICE ===
         - id: collection-service-route
           uri: lb://collection-service

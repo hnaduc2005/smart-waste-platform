@@ -7,7 +7,7 @@ import com.ecocycle.admin.client.UserProfileClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+
 import java.util.List;
 import java.util.Map;
 
@@ -52,9 +52,8 @@ public class AdminController {
         }
         return ResponseEntity.ok(Map.of(
             "totalUsers", totalUsersMap,
-            "wasteCollected", Map.of("count", totalWaste, "trend", 5.0),
-            "activeScans", Map.of("count", 1520, "trend", 10.0),
-            "rewardsClaimed", Map.of("count", totalRewards, "trend", 1.5)
+            "wasteCollected", Map.of("count", totalWaste),
+            "rewardsClaimed", Map.of("count", totalRewards)
         ));
     }
 
@@ -78,9 +77,9 @@ public class AdminController {
 
     /** Lấy toàn bộ user (từ auth-service, bao gồm email, status, role) */
     @GetMapping("/users")
-    public ResponseEntity<List<Object>> getAllUsersByRole(
+    public ResponseEntity<List<Map<String, Object>>> getAllUsersByRole(
             @RequestParam(defaultValue = "ALL") String role) {
-        return ResponseEntity.ok((List<Object>)(List<?>)authClient.getAllUsers(role));
+        return ResponseEntity.ok(authClient.getAllUsers(role));
     }
 
     /** Khoá / mở khoá tài khoản */
