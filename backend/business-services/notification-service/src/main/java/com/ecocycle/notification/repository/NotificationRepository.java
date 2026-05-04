@@ -11,6 +11,11 @@ import java.util.UUID;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
     
-    @Query("SELECT n FROM Notification n WHERE n.userId = :userId OR n.targetRole = :role ORDER BY n.createdAt DESC")
+    @Query("""
+        SELECT n FROM Notification n 
+        WHERE n.userId = :userId 
+           OR (n.targetRole = :role AND (n.targetUserId IS NULL OR n.targetUserId = :userId))
+        ORDER BY n.createdAt DESC
+        """)
     List<Notification> findByUserIdOrTargetRole(UUID userId, String role);
 }

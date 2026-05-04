@@ -25,6 +25,11 @@ public class Notification {
     @Column(name = "target_role")
     private String targetRole;
 
+    // Nếu targetRole = ENTERPRISE, field này chỉ định enterprise cụ thể nhận thông báo
+    // null = broadcast cho toàn bộ role đó
+    @Column(name = "target_user_id")
+    private UUID targetUserId;
+
     @Column(nullable = false)
     private String type = "SYSTEM";
 

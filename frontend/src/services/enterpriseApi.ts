@@ -38,6 +38,10 @@ export const enterpriseApi = {
   // Enterprises
   getEnterprises: () => api.get('/enterprises').then(res => res.data),
   getMyEnterprise: (userId: string) => api.get(`/enterprises/owner/${userId}`).then(res => res.data),
+  getEnterpriseByName: (name: string) => api.get('/enterprises').then(res => {
+    const list: any[] = res.data;
+    return list.find(e => e.name === name) || null;
+  }),
   createEnterprise: (data: Enterprise) => api.post('/enterprises', data).then(res => res.data),
   updateEnterprise: (id: number, data: Partial<Enterprise>) => api.put(`/enterprises/${id}`, data).then(res => res.data),
   getCapacity: (id: number) => api.get(`/enterprises/${id}/capacity`).then(res => res.data),
