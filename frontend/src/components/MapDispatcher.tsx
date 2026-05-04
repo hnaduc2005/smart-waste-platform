@@ -220,7 +220,7 @@ export const MapDispatcher = () => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 24, height: 'calc(100vh - 120px)' }}>
+    <div className="map-layout" style={{ display: 'flex', gap: 24, height: 'calc(100vh - 120px)' }}>
 
       {/* Map Section */}
       <div style={{ flex: 1, position: 'relative', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)' }}>
@@ -340,7 +340,7 @@ export const MapDispatcher = () => {
       </div>
 
       {/* Sidebar Task Management */}
-      <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto' }}>
+      <div className="map-sidebar" style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto' }}>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 18, color: 'var(--text)' }}>
             🚚 Các tài xế đang hoạt động

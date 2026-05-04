@@ -417,7 +417,7 @@ export const EnterpriseDashboardView = () => {
       {activeTab === 'capacity' && (
         <form onSubmit={handleSaveCapacity} style={{ display:'flex', flexDirection:'column', gap:20, maxWidth:700 }}>
           <p style={{ color:'var(--text-secondary)', margin:0 }}>Cập nhật thông tin năng lực xử lý rác của doanh nghiệp. Dữ liệu sẽ được lưu thật vào database.</p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, padding:28, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:20 }}>
+          <div className="capacity-form-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, padding:28, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:20 }}>
             {[
               { key:'name', label:'Tên doanh nghiệp', colSpan:2 },
               { key:'licenseNumber', label:'Số giấy phép kinh doanh' },

@@ -69,6 +69,7 @@ export default function AdminDashboardPage() {
   const [resolving, setResolving] = useState(false);
   const [complaintsLoading, setComplaintsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
 
   const handleRefreshOverview = async () => {
     setRefreshing(true);
@@ -143,13 +144,20 @@ export default function AdminDashboardPage() {
     : complaints.filter(c => c.status === statusFilter);
 
   return (
-    <div style={S.page}>
+    <div className="admin-layout" style={S.page}>
+      {/* Mobile sidebar toggle */}
+      <button className="sidebar-toggle" onClick={() => setAdminSidebarOpen(!adminSidebarOpen)} aria-label="Toggle menu">
+        {adminSidebarOpen ? '✕' : '☰'}
+      </button>
+      {/* Mobile overlay */}
+      <div className={`sidebar-overlay ${adminSidebarOpen ? 'active' : ''}`} onClick={() => setAdminSidebarOpen(false)} />
+
       {/* Sidebar */}
-      <nav style={S.sidebar}>
+      <nav className={`admin-sidebar-nav ${adminSidebarOpen ? 'open' : ''}`} style={S.sidebar}>
         <div style={S.logo}>⚙️ EcoAdmin</div>
         <div style={{ padding: '16px 0' }}>
           {TABS.map(t => (
-            <button key={t.id} style={S.navBtn(tab === t.id)} onClick={() => setTab(t.id)}>
+            <button key={t.id} style={S.navBtn(tab === t.id)} onClick={() => { setTab(t.id); setAdminSidebarOpen(false); }}>
               <span>{t.icon}</span> {t.label}
             </button>
           ))}
@@ -162,7 +170,7 @@ export default function AdminDashboardPage() {
         </div>
       </nav>
 
-      <main style={S.main}>
+      <main className="admin-main-content" style={S.main}>
         {/* ── OVERVIEW ── */}
         {tab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, animation: 'fadeIn 0.4s ease-out' }}>
@@ -184,7 +192,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* KPI cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+            <div className="admin-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
               {[
                 { label: 'Tổng người dùng', value: stats?.totalUsers?.count ?? '...', icon: '👥', color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
                 { label: 'Rác thu gom (kg)', value: stats?.wasteCollected?.count?.toFixed(0) ?? '...', icon: '⚖️', color: '#14b8a6', bg: 'rgba(20,184,166,0.1)' },
@@ -207,7 +215,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Main Charts Area */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+            <div className="admin-charts-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div style={{ ...S.card, padding: '24px 30px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -244,7 +252,7 @@ export default function AdminDashboardPage() {
                   </ResponsiveContainer>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                <div className="admin-sub-charts" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                   <div style={S.card}>
                     <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700 }}>Tăng trưởng người dùng</h3>
                     <ResponsiveContainer width="100%" height={220}>

@@ -127,7 +127,7 @@ export default function GamificationPage() {
           <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /> Quay lại Tổng quan
         </button>
       
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        <div className="gamification-layout" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           {/* CỘT TRÁI: ĐIỂM SỐ & LỊCH SỬ GIAO DỊCH */}
           <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: 24 }}>
             

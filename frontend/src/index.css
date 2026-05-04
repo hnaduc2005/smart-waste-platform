@@ -81,3 +81,261 @@ select option {
   background-color: #0f172a; /* Dark background to match theme */
   color: #f1f5f2;
 }
+
+/* ============================================================
+   RESPONSIVE DESIGN — Mobile-first overrides
+   ============================================================ */
+
+/* ── Hamburger toggle button (visible only on mobile) ── */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1050;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(17,26,22,0.95);
+  backdrop-filter: blur(12px);
+  color: var(--green-400);
+  font-size: 22px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.sidebar-toggle:hover {
+  background: rgba(34,197,94,0.15);
+  border-color: rgba(34,197,94,0.4);
+}
+
+/* Sidebar overlay backdrop */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1039;
+}
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* ── TABLET (≤1024px) ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* Auth: reduce brand-side padding */
+  .auth-brand {
+    padding: 40px 36px !important;
+  }
+
+  /* Dashboard: reduce sidebar width & main padding */
+  .dashboard-sidebar {
+    width: 220px !important;
+  }
+  .dashboard-main {
+    padding: 28px !important;
+  }
+
+  /* Dashboard: chart grid to 1 col */
+  .overview-chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Admin: KPI 2 cols */
+  .admin-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Admin: charts grid to 1 col */
+  .admin-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Admin: reduce main padding */
+  .admin-main-content {
+    padding: 24px !important;
+  }
+
+  /* Map: reduce sidebar width */
+  .map-sidebar {
+    width: 280px !important;
+  }
+}
+
+/* ── MOBILE (≤768px) ───────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* ── Auth Pages: 2 cols → 1 col, hide brand side ── */
+  .auth-layout {
+    grid-template-columns: 1fr !important;
+    min-height: 100vh;
+  }
+  .auth-brand {
+    display: none !important;
+  }
+  .auth-form-side {
+    padding: 24px 16px !important;
+  }
+  .auth-form-side .glass-card {
+    padding: 28px 20px !important;
+    max-width: 100% !important;
+  }
+  .register-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Dashboard Sidebar: off-canvas ── */
+  .sidebar-toggle {
+    display: flex;
+  }
+  .dashboard-layout {
+    flex-direction: column !important;
+  }
+  .dashboard-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: -300px !important;
+    width: 270px !important;
+    height: 100vh !important;
+    z-index: 1040 !important;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .dashboard-sidebar.open {
+    left: 0 !important;
+  }
+  .dashboard-main {
+    padding: 70px 16px 24px !important;
+    width: 100% !important;
+  }
+
+  /* Dashboard: overview grids → 1 col */
+  .overview-chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard: welcome banner reduce padding */
+  .dashboard-main h2 {
+    font-size: 18px !important;
+  }
+
+  /* ── Admin Sidebar: off-canvas ── */
+  .admin-layout {
+    flex-direction: column !important;
+  }
+  .admin-sidebar-nav {
+    position: fixed !important;
+    top: 0 !important;
+    left: -280px !important;
+    width: 250px !important;
+    height: 100vh !important;
+    z-index: 1040 !important;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .admin-sidebar-nav.open {
+    left: 0 !important;
+  }
+  .admin-main-content {
+    padding: 70px 16px 24px !important;
+    width: 100% !important;
+  }
+
+  /* Admin KPI → 1 col */
+  .admin-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-sub-charts {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Gamification: 2 cols → 1 col ── */
+  .gamification-layout {
+    flex-direction: column !important;
+  }
+  .gamification-layout > div {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  /* ── Map Dispatcher: stack vertically ── */
+  .map-layout {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  .map-layout > div:first-child {
+    height: 50vh !important;
+    min-height: 350px;
+  }
+  .map-sidebar {
+    width: 100% !important;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  /* ── CitizenRequestView: location input group stack ── */
+  .location-input-group {
+    flex-direction: column !important;
+  }
+  .location-input-group > input {
+    width: 100% !important;
+  }
+  .location-input-group > button {
+    width: 100% !important;
+    padding: 12px 16px !important;
+    justify-content: center !important;
+  }
+
+  /* ── Enterprise capacity form: 1 col ── */
+  .capacity-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .capacity-form-grid > div {
+    grid-column: span 1 !important;
+  }
+
+  /* ── General: tables scroll horizontal ── */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  thead, tbody, tr {
+    display: table;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  /* ── Background glow: reduce size for perf ── */
+  .page-bg::before {
+    width: 400px !important;
+    height: 300px !important;
+  }
+  .page-bg::after {
+    width: 300px !important;
+    height: 300px !important;
+  }
+}
+
+/* ── SMALL MOBILE (≤480px) ─────────────────────────────────── */
+@media (max-width: 480px) {
+  html { font-size: 14px; }
+
+  .auth-form-side {
+    padding: 16px 12px !important;
+  }
+
+  .dashboard-main {
+    padding: 64px 12px 20px !important;
+  }
+
+  .admin-main-content {
+    padding: 64px 12px 20px !important;
+  }
+}

@@ -361,7 +361,7 @@ export const CitizenRequestView = () => {
                 Vị trí thu gom <span style={{ color: '#ef4444' }}>*</span>
                 <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 6 }}>(Gõ địa chỉ rồi bấm "Xác định" HOẶC dùng GPS tự động)</span>
               </label>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="location-input-group" style={{ display: 'flex', gap: 10 }}>
                 <input
                   type="text" required
                   value={location}

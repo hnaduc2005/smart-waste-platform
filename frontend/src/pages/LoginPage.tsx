@@ -132,7 +132,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
+    <div className="auth-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
       <ParticlesBackground />
 
       <AuthBrandSide
@@ -144,7 +144,7 @@ export default function LoginPage() {
       />
 
       {/* Form side */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
+      <div className="auth-form-side" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
         <GlassCard style={{ width: '100%', maxWidth: 440, padding: '44px 40px' }}>
 
           {/* Header */}

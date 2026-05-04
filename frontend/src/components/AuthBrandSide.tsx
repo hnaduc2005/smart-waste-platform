@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom';
 
+interface AuthBrandSideProps {
+  title: string;
+  highlight?: string;
+  subtitle: string;
+  stats?: { value: string; label: string }[];
+  features?: { icon: string; label: string; title?: string }[];
+}
+
 /** Shared brand sidebar for all auth pages */
-export default function AuthBrandSide({ title, highlight, subtitle, stats, features }) {
+export default function AuthBrandSide({ title, highlight, subtitle, stats, features }: AuthBrandSideProps) {
   return (
-    <aside style={{
+    <aside className="auth-brand" style={{
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
       padding: '60px 64px', position: 'relative', overflow: 'hidden',
     }}>

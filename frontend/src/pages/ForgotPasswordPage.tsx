@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
   const strength = calcStrength(pwd.new);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
+    <div className="auth-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
       <ParticlesBackground />
       <AuthBrandSide
         title="Bảo mật tài khoản"
@@ -131,7 +131,7 @@ export default function ForgotPasswordPage() {
         ]}
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
+      <div className="auth-form-side" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
         <GlassCard style={{ width: '100%', maxWidth: 440, padding: '44px 40px' }}>
 
           <Alert message={alert.msg} type={alert.type} onClose={() => setAlert({ msg: '', type: 'error' })} />

@@ -20,7 +20,7 @@ const STEPS = ['role', 'info', 'security'];
 const STEP_TITLES = ['Bạn là ai? 🎭', 'Thông tin cơ bản 📋', 'Bảo mật tài khoản 🔐'];
 
 // ── Password strength ─────────────────────────────────────────────
-function calcStrength(pwd) {
+function calcStrength(pwd: string) {
   let s = 0;
   if (pwd.length >= 6) s++;
   if (pwd.length >= 10) s++;
@@ -37,11 +37,11 @@ export default function RegisterPage() {
 
   const [step, setStep]     = useState(0);   // 0 | 1 | 2
   const [form, setForm]     = useState({ role: 'CITIZEN', username: '', email: '', password: '', confirm: '', agree: false });
-  const [errors, setErrors] = useState({});
-  const [alert, setAlert]   = useState({ msg: '', type: 'error' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [alert, setAlert]   = useState<{ msg: string; type: string }>({ msg: '', type: 'error' });
   const [loading, setLoading] = useState(false);
 
-  const set = (field) => (e) => {
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm(p => ({ ...p, [field]: val }));
     setErrors(p => ({ ...p, [field]: '' }));
@@ -51,7 +51,7 @@ export default function RegisterPage() {
 
   // ── Validate & advance steps ──────────────────────────────────
   const goNext = () => {
-    const errs = {};
+    const errs: Record<string, string> = {};
     if (step === 1) {
       if (form.username.length < 3) errs.username = 'Username phải có ít nhất 3 ký tự';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Email không hợp lệ';
@@ -60,9 +60,9 @@ export default function RegisterPage() {
     if (Object.keys(errs).length === 0) setStep(s => s + 1);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errs = {};
+    const errs: Record<string, string> = {};
     if (form.password.length < 6) errs.password = 'Mật khẩu phải có ít nhất 6 ký tự';
     if (form.password !== form.confirm) errs.confirm = 'Mật khẩu xác nhận không khớp';
     if (!form.agree) errs.agree = 'Vui lòng đồng ý với điều khoản sử dụng';
@@ -75,10 +75,10 @@ export default function RegisterPage() {
       setAlert({ msg: `🎉 Chào mừng ${form.username}! Đang chuyển hướng...`, type: 'success' });
       setTimeout(() => navigate('/dashboard'), 1000);
     } catch (err) {
-      const { message, details } = extractError(err);
+      const { message, details } = extractError(err) as { message: string; details?: Record<string, string> };
       setAlert({ msg: message, type: 'error' });
       if (details?.username || details?.email) setStep(1);
-      const fieldErrs = {};
+      const fieldErrs: Record<string, string> = {};
       if (details?.username) fieldErrs.username = details.username;
       if (details?.email)    fieldErrs.email    = details.email;
       if (details?.password) fieldErrs.password  = details.password;
@@ -116,7 +116,7 @@ export default function RegisterPage() {
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
+    <div className="auth-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh' }}>
       <ParticlesBackground />
 
       <AuthBrandSide
@@ -126,7 +126,7 @@ export default function RegisterPage() {
         features={ROLES.map(r => ({ icon: r.emoji, title: r.name, label: r.desc }))}
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
+      <div className="auth-form-side" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflowY: 'auto' }}>
         <GlassCard style={{ width: '100%', maxWidth: 480, padding: '40px 40px' }}>
           <StepIndicator />
 
@@ -182,7 +182,7 @@ export default function RegisterPage() {
           {/* ── STEP 1: Info ── */}
           {step === 1 && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="register-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <FormInput label="Tên đăng nhập *" name="username" icon="👤" placeholder="min. 3 ký tự" autoComplete="username"
                   value={form.username} onChange={set('username')} error={errors.username} />
                 <FormInput label="Email *" name="email" type="email" icon="📧" placeholder="email@gmail.com" autoComplete="email"

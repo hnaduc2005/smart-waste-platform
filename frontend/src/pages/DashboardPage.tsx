@@ -98,6 +98,7 @@ export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('overview');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [displayName, setDisplayName] = useState<string>('');
 
@@ -236,7 +237,14 @@ export default function DashboardPage() {
   const roleMap = { CITIZEN: '🧑‍💼 Công dân', COLLECTOR: '🚛 Thu gom', ENTERPRISE: '🏭 Doanh nghiệp' };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Mobile sidebar toggle */}
+      <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle menu">
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+      {/* Mobile overlay */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
+
       {/* Logout modal */}
       {showLogoutModal && (
         <div onClick={(e) => e.target === e.currentTarget && setShowLogoutModal(false)}
@@ -266,7 +274,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Sidebar ── */}
-      <nav style={{ width: 260, flexShrink: 0, background: 'rgba(255,255,255,0.04)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', padding: '28px 0', backdropFilter: 'blur(20px)' }}>
+      <nav className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`} style={{ width: 260, flexShrink: 0, background: 'rgba(255,255,255,0.04)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', padding: '28px 0', backdropFilter: 'blur(20px)' }}>
         {/* Logo */}
         <div style={{ padding: '0 24px 24px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -278,7 +286,7 @@ export default function DashboardPage() {
         {/* Nav */}
         <div style={{ flex: 1, padding: '16px 12px' }}>
           {NAV_ITEMS.filter(item => !item.roles || !user?.role || item.roles.includes(user.role)).map(item => (
-            <button key={item.id} onClick={() => setActiveNav(item.id)}
+            <button key={item.id} onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                 padding: '11px 12px', borderRadius: 8, border: 'none',
@@ -329,7 +337,7 @@ export default function DashboardPage() {
       </nav>
 
       {/* ── Main content ── */}
-      <main style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
+      <main className="dashboard-main" style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
 
         {activeNav === 'requests' && ['CITIZEN'].includes(user?.role || '') && <CitizenRequestView />}
         {activeNav === 'map' && user?.role === 'ENTERPRISE' && <MapDispatcher />}
@@ -397,7 +405,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Chart + Activity */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
+                <div className="overview-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
                   <div style={{ padding: 24, background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, backdropFilter: 'blur(20px)' }}>
                     <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
                       <span>📈 Hoạt động 7 ngày qua</span>
