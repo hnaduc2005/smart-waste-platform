@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/hnaduc2005/smart-waste-platform" target="_blank">
-    <img src="./frontend/src/assets/readme_logo.png" width="90" alt="Logo" />
+    <img src="./frontend/src/assets/readme_logo.png" width="150" alt="Logo" />
   </a>
 
   <h1>EcoCycle Website</h1>
@@ -15,7 +15,7 @@
     <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   </p>
 
-  <img src="./frontend/src/assets/readme_banner.png" width="95%" alt="Banner" />
+  <img src="./frontend/src/assets/readme_banner.jpg" width="95%" alt="Banner" />
 </div>
 
 ## 💡 Tổng quan
