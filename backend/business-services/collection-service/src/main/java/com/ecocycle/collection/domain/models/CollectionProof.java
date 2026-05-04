@@ -22,7 +22,7 @@ public class CollectionProof {
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private TaskAssignment task;
 
-    @Column(name = "photo_url", nullable = false)
+    @Column(name = "photo_url", nullable = true, columnDefinition = "TEXT")
     private String photoUrl;
 
     @Column(nullable = false)

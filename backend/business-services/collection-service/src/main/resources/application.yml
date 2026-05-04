@@ -21,6 +21,16 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
 
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+  # Tăng kích thước request JSON (base64 ảnh lớn hơn binary ~33%)
+  mvc:
+    async:
+      request-timeout: 60000
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
     consumer:
@@ -33,9 +43,15 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
 server:
   port: 8083
+  tomcat:
+    max-http-form-post-size: 20MB
+    max-swallow-size: 20MB
 
 eureka:
   instance:
