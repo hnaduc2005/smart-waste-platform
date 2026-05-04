@@ -1,12 +1,13 @@
 <div align="center">
-  <a href="https://github.com/your-username/smart-waste-platform" target="_blank">
-    <img src="./assets/chatBot.png" width="90" alt="Logo" />
+  <a href="https://github.com/hnaduc2005/smart-waste-platform" target="_blank">
+    <img src="./frontend/src/assets/readme_logo.png" width="90" alt="Logo" />
   </a>
 
   <h1>EcoCycle Website</h1>
 
   <p>
     <img src="https://img.shields.io/badge/Java_Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" alt="Spring Boot" />
+    <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="NodeJS" />
     <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
     <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
     <img src="https://img.shields.io/badge/YOLOv11-FF9900?style=for-the-badge&logo=python&logoColor=white" alt="YOLOv11" />
@@ -14,7 +15,7 @@
     <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   </p>
 
-  <img src="./assets/bg-3.webp" width="95%" alt="Banner" />
+  <img src="./frontend/src/assets/readme_banner.png" width="95%" alt="Banner" />
 </div>
 
 ## 💡 Tổng quan
@@ -31,9 +32,6 @@ Các tính năng chính bao gồm:
 - **📄 Thống kê & Bảng điều khiển (Analytics):** Quản lý khối lượng dữ liệu lớn và cung cấp các báo cáo chuyên sâu thông qua biểu đồ cùng một trang quản trị (Admin Dashboard) toàn diện để theo dõi sự phát triển của nền tảng.
 - **🎯 Tối ưu hóa & Sẵn sàng Mở rộng:** Được xây dựng bằng kiến trúc Microservices và đóng gói bằng Docker, hệ thống được tối ưu hóa cho tốc độ và sự ổn định, đảm bảo khả năng vận hành mượt mà ở quy mô lớn (Production-Ready).
 - **🎁 Hệ thống Điểm thưởng & Linh hoạt:** Khuyến khích người dùng tham gia bảo vệ môi trường thông qua hệ thống tích điểm và đổi thưởng (Reward System), đồng thời cung cấp các giải pháp quản lý linh hoạt cho các đối tác doanh nghiệp.
-- **📱 Thiết kế Tương thích (Responsive Design):** Trải nghiệm Smart Waste Platform trên mọi thiết bị với thiết kế giao diện tự động thích ứng với nhiều kích thước màn hình khác nhau.
-
-Cho dù bạn là một người dùng cá nhân muốn góp phần bảo vệ môi trường, một nhân viên thu gom hay một doanh nghiệp đối tác, Smart Waste Platform là công cụ hoàn hảo để theo dõi và quản lý vòng tuần hoàn của rác thải một cách dễ dàng. ♻️
 
 ## 👩💻 Công nghệ Sử dụng (Tech Stack)
 
@@ -68,7 +66,7 @@ Cho dù bạn là một người dùng cá nhân muốn góp phần bảo vệ m
 1. **Clone mã nguồn dự án:**
 
    ```bash
-   git clone https://github.com/your-username/smart-waste-platform.git
+   git clone https://github.com/hnaduc2005/smart-waste-platform.git
    cd smart-waste-platform
    ```
 
