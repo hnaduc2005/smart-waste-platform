@@ -45,7 +45,7 @@ export const collectionApi = {
   getPendingRequests: () => 
     api.get('/requests/pending').then(res => res.data),
     
-  assignTask: (data: { requestId: string; collectorId: string }) => 
+  assignTask: (data: { requestId: string; collectorId: string; enterpriseName?: string }) => 
     api.post('/tasks/assign', data).then(res => res.data),
     
   getCollectorTasks: (collectorId: string) => 
@@ -53,6 +53,15 @@ export const collectionApi = {
 
   getCollectorHistory: (collectorId: string) =>
     api.get(`/tasks/collector/${collectorId}/history`).then(r => r.data),
+
+  getEnterpriseHistory: (enterpriseName: string, collectorIds?: string[]) => {
+    const params = new URLSearchParams();
+    if (collectorIds && collectorIds.length > 0) {
+      collectorIds.forEach(id => params.append('collectorIds', id));
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return api.get(`/tasks/enterprise/${encodeURIComponent(enterpriseName)}/history${query}`).then(r => r.data);
+  },
     
   updateTaskStatus: (taskId: string, status: string) =>
     api.patch(`/tasks/${taskId}/status?status=${status}`).then(r => r.data),

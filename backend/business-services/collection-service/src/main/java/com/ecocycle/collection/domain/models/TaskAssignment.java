@@ -29,4 +29,7 @@ public class TaskAssignment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RequestStatus status;
+
+    @Column(name = "enterprise_name")
+    private String enterpriseName;
 }

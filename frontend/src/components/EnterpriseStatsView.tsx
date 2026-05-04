@@ -25,14 +25,11 @@ export const EnterpriseStatsView = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [analyticsResult, enterpriseResult, collectorsResult, tasksResult] = await Promise.allSettled([
-          analyticsApi.getDashboardData(),
+        const [enterpriseResult, collectorsResult, tasksResult] = await Promise.allSettled([
           enterpriseApi.getMyEnterprise(user?.userId || ''),
           userApi.getCollectors(),
           collectionApi.getActiveTasks()  // lấy TaskAssignment đang ON_THE_WAY, có collectorId
         ]);
-
-        if (analyticsResult.status === 'fulfilled') setAnalyticsData(analyticsResult.value);
         
         let ent = null;
         if (enterpriseResult.status === 'fulfilled') {
@@ -44,18 +41,19 @@ export const EnterpriseStatsView = () => {
         if (collectorsResult.status === 'fulfilled') {
           const allCollectors = collectorsResult.value;
           // Chỉ lấy collectors thuộc doanh nghiệp này
-          filteredCollectors = allCollectors.filter((c: any) => !ent?.name || c.companyName === ent.name);
+          // QUAN TRỌNG: nếu ent.name chưa có (doanh nghiệp mới chưa cấu hình) → trả về [] để tránh data leakage
+          filteredCollectors = ent?.name
+            ? allCollectors.filter((c: any) => c.companyName === ent.name)
+            : [];
           setMyCollectors(filteredCollectors);
         }
 
         // Xác định collectors đang đi gom từ TaskAssignment có status ON_THE_WAY
         if (tasksResult.status === 'fulfilled') {
           const activeTasks: any[] = tasksResult.value;
-          // Dùng String(c.id) — đây là UUID của collector, khớp với collectorId trong TaskAssignment
           const collectorIdSet = new Set(filteredCollectors.map((c: any) => String(c.id)));
           const activeIds = new Set<string>();
           activeTasks.forEach((t: any) => {
-            // TaskAssignment có trường collectorId (UUID string)
             const cid = t.collectorId ? String(t.collectorId) : null;
             if (cid && collectorIdSet.has(cid)) {
               activeIds.add(cid);
@@ -63,6 +61,72 @@ export const EnterpriseStatsView = () => {
           });
           setOnTheWayCollectorIds(activeIds);
         }
+
+        // Fetch histories for THIS enterprise directly from backend API
+        // Truyền thêm collectorIds để hệ thống fallback tìm dữ liệu cũ (trước khi có cột enterprise_name)
+        let allMyHistory: any[] = [];
+        if (ent && ent.name) {
+          try {
+            const currentCollectorIds = filteredCollectors.map((c: any) => String(c.id));
+            const historyResult = await collectionApi.getEnterpriseHistory(ent.name, currentCollectorIds);
+            allMyHistory = historyResult || [];
+          } catch (e) {
+            console.error('Failed to fetch enterprise history', e);
+          }
+        }
+
+        // Compute analytics data locally for THIS enterprise
+        const daysOfWeek = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        const todayDow = new Date().getDay();
+        const backendDowOrder = [1, 2, 3, 4, 5, 6, 0];
+        
+        const weeklyStats: any[] = backendDowOrder.map(dow => ({
+           name: daysOfWeek[dow],
+           organic: 0, recycle: 0, hazardous: 0, electronic: 0, bulky: 0
+        }));
+
+        const districtStatsMap: Record<string, number> = {};
+
+        allMyHistory.forEach(item => {
+           // Chỉ tính kg từ đơn collector đã xác nhận (CollectionProof tồn tại)
+           // item.weight = null nghĩa là collector chưa điền kg → bỏ qua
+           if (item.weight === null || item.weight === undefined) return;
+           const weight = Number(item.weight);
+           if (isNaN(weight) || weight <= 0) return;
+
+           let dow = todayDow;
+           if (item.completedAt) {
+             const d = new Date(item.completedAt);
+             if (!isNaN(d.getTime())) dow = d.getDay();
+           }
+           const dayData = weeklyStats.find(d => d.name === daysOfWeek[dow]);
+           const wt = (item.wasteType || 'RECYCLABLE').toLowerCase();
+           
+           if (dayData) {
+             if (wt.includes('organic')) dayData.organic += weight;
+             else if (wt.includes('recyclable') || wt.includes('recycle')) dayData.recycle += weight;
+             else if (wt.includes('hazard')) dayData.hazardous += weight;
+             else if (wt.includes('electronic')) dayData.electronic += weight;
+             else if (wt.includes('bulky')) dayData.bulky += weight;
+             else dayData.recycle += weight;
+           }
+
+           const dName = item.district || 'Khu vực hoạt động';
+           if (!districtStatsMap[dName]) districtStatsMap[dName] = 0;
+           districtStatsMap[dName] += weight;
+        });
+
+        const districtStats = Object.keys(districtStatsMap).map(name => ({
+           name,
+           total: districtStatsMap[name],
+           efficiency: 100 // Assume 100% for completed tasks
+        })).sort((a,b) => b.total - a.total);
+
+        setAnalyticsData({
+           districts: districtStats,
+           weekly: weeklyStats
+        });
+
       } finally {
         setLoading(false);
       }
@@ -105,6 +169,23 @@ export const EnterpriseStatsView = () => {
     <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
       <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
       Đang tải số liệu...
+    </div>
+  );
+
+  // Doanh nghiệp chưa cấu hình năng lực → chưa có name → hiển thị empty state
+  if (!myEnterprise?.name) return (
+    <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-secondary)' }}>
+      <div style={{ fontSize: 56, marginBottom: 20 }}>🏭</div>
+      <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 12px', color: 'var(--text)' }}>
+        Doanh nghiệp chưa được cấu hình
+      </h2>
+      <p style={{ fontSize: 15, maxWidth: 400, margin: '0 auto 24px', lineHeight: 1.6 }}>
+        Vui lòng vào mục <b>Quản lý Năng lực</b> để điền thông tin doanh nghiệp 
+        (tên, khu vực, loại rác tiếp nhận) trước khi xem thống kê.
+      </p>
+      <div style={{ display: 'inline-block', padding: '10px 24px', background: 'rgba(34,197,94,0.1)', border: '1px solid var(--green-500)', borderRadius: 12, fontSize: 14, color: 'var(--green-400)', fontWeight: 600 }}>
+        ← Chọn tab "Quản lý Năng lực" để bắt đầu
+      </div>
     </div>
   );
 

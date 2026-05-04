@@ -138,6 +138,7 @@ public class CollectionService {
         request.setCitizenId(citizenId);
         request.setType(finalWasteType);
         request.setLocation(location);
+        request.setDistrict(extractDistrict(location)); // ← cần thiết để notify enterprise
         request.setDescription(description);
         // For production, image should be uploaded to S3. Here we put a placeholder or
         // basic string.
@@ -224,6 +225,7 @@ public class CollectionService {
         TaskAssignment task = new TaskAssignment();
         task.setRequest(request);
         task.setCollectorId(dto.getCollectorId());
+        task.setEnterpriseName(dto.getEnterpriseName());
         task.setStatus(RequestStatus.ASSIGNED);
 
         return taskRepository.save(task);
@@ -256,8 +258,49 @@ public class CollectionService {
                 .description(task.getRequest() != null ? task.getRequest().getDescription() : null)
                 .photoUrl(proof != null ? proof.getPhotoUrl() : null)
                 .weight(proof != null ? proof.getWeight() : null)
+                .completedAt(task.getRequest() != null && task.getRequest().getCreatedAt() != null ? task.getRequest().getCreatedAt().toString() : null)
+                .district(task.getRequest() != null ? task.getRequest().getDistrict() : null)
                 .build();
         }).toList();
+    }
+
+    public List<com.ecocycle.collection.dto.CollectorHistoryItemDto> getEnterpriseHistory(
+            String enterpriseName, List<UUID> collectorIds) {
+        // Dùng query kết hợp:
+        //  1. Đơn mới: enterprise_name = enterpriseName
+        //  2. Đơn cũ (trước khi có cột enterprise_name): collectorId thuộc danh sách hiện tại
+        List<UUID> safeCollectorIds = (collectorIds != null && !collectorIds.isEmpty())
+            ? collectorIds
+            : java.util.Collections.emptyList();
+
+        List<TaskAssignment> completedTasks = taskRepository.findByEnterpriseNameOrCollectorIds(
+            enterpriseName,
+            safeCollectorIds,
+            java.util.List.of(RequestStatus.COMPLETED, RequestStatus.COLLECTED));
+
+        return completedTasks.stream()
+            .map(task -> {
+                com.ecocycle.collection.domain.models.CollectionProof proof =
+                    proofRepository.findByTask(task).orElse(null);
+                // Chỉ trả về task đã có CollectionProof với weight từ collector
+                // (bỏ qua task chưa xác nhận hoặc chưa điền kg)
+                if (proof == null || proof.getWeight() == null) return null;
+
+                return com.ecocycle.collection.dto.CollectorHistoryItemDto.builder()
+                    .taskId(task.getId())
+                    .status(task.getStatus().name())
+                    .requestId(task.getRequest() != null ? task.getRequest().getId() : null)
+                    .wasteType(task.getRequest() != null ? task.getRequest().getType().name() : null)
+                    .location(task.getRequest() != null ? task.getRequest().getLocation() : null)
+                    .description(task.getRequest() != null ? task.getRequest().getDescription() : null)
+                    .photoUrl(proof.getPhotoUrl())
+                    .weight(proof.getWeight())
+                    .completedAt(task.getRequest() != null && task.getRequest().getCreatedAt() != null ? task.getRequest().getCreatedAt().toString() : null)
+                    .district(task.getRequest() != null ? task.getRequest().getDistrict() : null)
+                    .build();
+            })
+            .filter(java.util.Objects::nonNull)
+            .toList();
     }
 
     public List<com.ecocycle.collection.dto.CitizenHistoryItemDto> getCitizenCompletedTasks(UUID citizenId) {

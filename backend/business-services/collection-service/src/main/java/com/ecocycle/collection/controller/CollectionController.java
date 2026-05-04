@@ -142,6 +142,13 @@ public class CollectionController {
         return ResponseEntity.ok(collectionService.getCollectorHistory(collectorId));
     }
 
+    @GetMapping("/tasks/enterprise/{enterpriseName}/history")
+    public ResponseEntity<List<com.ecocycle.collection.dto.CollectorHistoryItemDto>> getEnterpriseHistory(
+            @PathVariable String enterpriseName,
+            @RequestParam(required = false) List<UUID> collectorIds) {
+        return ResponseEntity.ok(collectionService.getEnterpriseHistory(enterpriseName, collectorIds));
+    }
+
 
     @PatchMapping("/tasks/{taskId}/status")
     public ResponseEntity<TaskAssignment> updateTaskStatus(

@@ -55,6 +55,8 @@ export const MapDispatcher = () => {
   const [assignMsg, setAssignMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [enterprise, setEnterprise] = useState<any>(null);
 
+  const [enterpriseReady, setEnterpriseReady] = useState<boolean | null>(null); // null = loading
+
   // Dùng ref để interval luôn đọc được giá trị mới nhất (tránh stale closure)
   const serviceAreaRef = useRef<string | undefined>(undefined);
   const enterpriseNameRef = useRef<string | undefined>(undefined);
@@ -70,7 +72,7 @@ export const MapDispatcher = () => {
       const data = await userApi.getCollectors();
       const myEntName = enterpriseNameRef.current;
       // Chỉ hiển thị các collector trực thuộc doanh nghiệp này (so khớp companyName)
-      const myCollectors = data.filter((c: any) => !myEntName || c.companyName === myEntName);
+      const myCollectors = myEntName ? data.filter((c: any) => c.companyName === myEntName) : [];
 
       const mapped = myCollectors.map((c: any, index: number) => ({
         id: c.id,
@@ -122,10 +124,20 @@ export const MapDispatcher = () => {
         try {
           const ent = await enterpriseApi.getMyEnterprise(user.userId);
           setEnterprise(ent);
-          serviceAreaRef.current = ent?.serviceArea;  // cập nhật ref
-          enterpriseNameRef.current = ent?.name; // lưu tên doanh nghiệp để filter tài xế
+
+          // Kiểm tra doanh nghiệp đã setup năng lực chưa
+          const isReady = !!(ent?.name && ent?.serviceArea);
+          setEnterpriseReady(isReady);
+
+          if (!isReady) return; // Chưa setup → không load đơn
+
+          serviceAreaRef.current = ent?.serviceArea;
+          enterpriseNameRef.current = ent?.name || ent?.companyName || '';
           acceptedWasteTypesRef.current = ent?.acceptedWasteTypes;
-        } catch { /* no enterprise */ }
+        } catch {
+          setEnterpriseReady(false);
+          return;
+        }
       }
       fetchPending();
       fetchCollectors();
@@ -133,8 +145,10 @@ export const MapDispatcher = () => {
     init();
     // interval luôn đọc serviceAreaRef.current — không bị stale closure
     const interval = setInterval(() => {
-      fetchPending();
-      fetchCollectors();
+      if (enterpriseNameRef.current) { // Chỉ poll khi đã có enterprise name
+        fetchPending();
+        fetchCollectors();
+      }
     }, 10000);
     return () => clearInterval(interval);
   }, [user?.userId]);
@@ -148,7 +162,11 @@ export const MapDispatcher = () => {
       setAssigningId(reqId);
       setAssignMsg(null);
 
-      await collectionApi.assignTask({ requestId: reqId, collectorId });
+      await collectionApi.assignTask({ 
+        requestId: reqId, 
+        collectorId,
+        enterpriseName: enterpriseNameRef.current 
+      });
 
       setAssignMsg({ type: 'success', text: '✅ Đã gán nhiệm vụ thành công!' });
       setTimeout(() => setAssignMsg(null), 3000);
@@ -218,6 +236,35 @@ export const MapDispatcher = () => {
       handleAssign(reqId, collectorId);
     }
   };
+
+  // Guard: đang load
+  if (enterpriseReady === null) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-secondary)' }}>
+        <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
+        Đang tải thông tin doanh nghiệp...
+      </div>
+    );
+  }
+
+  // Guard: chưa cấu hình năng lực
+  if (enterpriseReady === false) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-secondary)' }}>
+        <div style={{ fontSize: 56, marginBottom: 20 }}>🏭</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 12px', color: 'var(--text)' }}>
+          Doanh nghiệp chưa được cấu hình
+        </h2>
+        <p style={{ fontSize: 15, maxWidth: 420, margin: '0 auto 24px', lineHeight: 1.6 }}>
+          Bạn cần vào <b>Quản lý Năng lực</b> để điền đầy đủ thông tin doanh nghiệp
+          (tên, khu vực phục vụ, loại rác tiếp nhận) trước khi sử dụng Bản đồ điều phối.
+        </p>
+        <div style={{ display: 'inline-block', padding: '10px 24px', background: 'rgba(34,197,94,0.1)', border: '1px solid var(--green-500)', borderRadius: 12, fontSize: 14, color: 'var(--green-400)', fontWeight: 600 }}>
+          ← Chọn tab "Quản lý Năng lực" để bắt đầu
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="map-layout" style={{ display: 'flex', gap: 24, height: 'calc(100vh - 120px)' }}>

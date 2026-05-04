@@ -21,4 +21,6 @@ public class CollectorHistoryItemDto {
     // CollectionProof info (null if no proof yet)
     private String photoUrl;
     private Double weight;
+    private String completedAt;
+    private String district;
 }

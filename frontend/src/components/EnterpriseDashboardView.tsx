@@ -104,39 +104,46 @@ export const EnterpriseDashboardView = () => {
 
       // Lọc đơn theo khu vực phục vụ của doanh nghiệp
       const serviceArea = enterpriseData?.serviceArea || '';
-      const districtParam = (serviceArea && serviceArea !== 'Toàn TP.HCM') ? serviceArea : undefined;
+      const acceptedTypesStr = enterpriseData?.acceptedWasteTypes || '';
 
-      const [reqs, cols, rules] = await Promise.allSettled([
-        collectionApi.getAllRequests(undefined, districtParam),
-        userApi.getCollectors(),
-        enterpriseApi.getRewardRules(),
-      ]);
-      if (reqs.status === 'fulfilled') {
-        let fetchedReqs = reqs.value || [];
-        const acceptedTypesStr = enterpriseData?.acceptedWasteTypes;
-        if (acceptedTypesStr) {
-          const typesArray = acceptedTypesStr.split(',').map((s: string) => s.trim().toUpperCase());
-          fetchedReqs = fetchedReqs.filter((r: any) => typesArray.includes(r.type));
+      // Nếu doanh nghiệp chưa cấu hình năng lực (chưa có serviceArea) → không fetch đơn
+      // Tránh hiển thị dữ liệu toàn hệ thống cho doanh nghiệp mới
+      if (!serviceArea || !enterpriseData?.name) {
+        setAllRequests([]);
+      } else {
+        const districtParam = serviceArea !== 'Toàn TP.HCM' ? serviceArea : undefined;
+
+        const [reqs, cols, rules] = await Promise.allSettled([
+          collectionApi.getAllRequests(undefined, districtParam),
+          userApi.getCollectors(),
+          enterpriseApi.getRewardRules(),
+        ]);
+        if (reqs.status === 'fulfilled') {
+          let fetchedReqs = reqs.value || [];
+          if (acceptedTypesStr) {
+            const typesArray = acceptedTypesStr.split(',').map((s: string) => s.trim().toUpperCase());
+            fetchedReqs = fetchedReqs.filter((r: any) => typesArray.includes(r.type));
+          }
+          
+          // Loại bỏ các đơn rác không hợp lệ (ngoài TP.HCM) nếu doanh nghiệp chọn 'Toàn TP.HCM'
+          if (serviceArea === 'Toàn TP.HCM') {
+            fetchedReqs = fetchedReqs.filter((r: any) => r.district !== 'Ngoài TP.HCM' && r.district !== 'Khác' && r.district !== 'Chưa xác định');
+          }
+          
+          setAllRequests(fetchedReqs);
         }
-        
-        // Loại bỏ các đơn rác không hợp lệ (ngoài TP.HCM) nếu doanh nghiệp chọn 'Toàn TP.HCM'
-        if (serviceArea === 'Toàn TP.HCM') {
-          fetchedReqs = fetchedReqs.filter((r: any) => r.district !== 'Ngoài TP.HCM' && r.district !== 'Khác' && r.district !== 'Chưa xác định');
+        if (cols.status === 'fulfilled') {
+          const allCols = cols.value || [];
+          const entName = enterpriseData?.name || '';
+          if (entName) {
+            const myCols = allCols.filter((c: any) => c.companyName === entName);
+            setCollectors(myCols);
+          } else {
+            setCollectors([]);
+          }
         }
-        
-        setAllRequests(fetchedReqs);
+        if (rules.status === 'fulfilled') setRewardRules(rules.value || []);
       }
-      if (cols.status === 'fulfilled') {
-        const allCols = cols.value || [];
-        const entName = enterpriseData?.name || enterpriseData?.companyName || '';
-        if (entName) {
-          const myCols = allCols.filter((c: any) => c.companyName === entName);
-          setCollectors(myCols);
-        } else {
-          setCollectors([]);
-        }
-      }
-      if (rules.status === 'fulfilled') setRewardRules(rules.value || []);
     } finally {
       setLoading(false);
     }
@@ -148,6 +155,8 @@ export const EnterpriseDashboardView = () => {
   useEffect(() => {
     if (activeTab !== 'tracking') return;
     const serviceArea = enterprise?.serviceArea;
+    // Không refresh nếu enterprise chưa cấu hình
+    if (!serviceArea || !enterprise?.name) return;
     const districtParam = (serviceArea && serviceArea !== 'Toàn TP.HCM') ? serviceArea : undefined;
     const acceptedTypesStr = enterprise?.acceptedWasteTypes;
     const id = setInterval(() =>
@@ -216,13 +225,7 @@ export const EnterpriseDashboardView = () => {
     } catch { showToast('error', '❌ Không thể lưu thông tin'); }
   };
 
-  const handleSaveRule = async (wasteType: string, pointsPerKg: number, invalidMultiplier: number) => {
-    try {
-      const updated = await enterpriseApi.updateRewardRule(wasteType, pointsPerKg, invalidMultiplier);
-      setRewardRules(r => r.map(x => x.type === wasteType ? { ...x, pointsPerKg: updated.pointsPerKg, invalidMultiplier: updated.invalidMultiplier } : x));
-      showToast('success', `✅ Đã cập nhật cấu hình điểm cho ${WASTE_LABELS[wasteType]?.label}`);
-    } catch { showToast('error', '❌ Không thể lưu quy tắc điểm'); }
-  };
+  // handleSaveRule intentionally removed — only Admin can modify reward rules
 
   const pendingReqs = allRequests.filter(r => r.status === 'PENDING');
   const activeReqs  = allRequests.filter(r => ['ASSIGNED','ON_THE_WAY','COLLECTED'].includes(r.status));
@@ -291,6 +294,26 @@ export const EnterpriseDashboardView = () => {
           border: `1px solid ${toast.type === 'success' ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
           color: toast.type === 'success' ? '#34d399' : '#f87171' }}>
           {toast.text}
+        </div>
+      )}
+
+      {/* Banner cảnh báo khi enterprise chưa cấu hình năng lực */}
+      {(!enterprise?.serviceArea || !enterprise?.name) && (
+        <div style={{
+          padding: '16px 20px', borderRadius: 14,
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+          display: 'flex', alignItems: 'center', gap: 14
+        }}>
+          <div style={{ fontSize: 28 }}>⚙️</div>
+          <div>
+            <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
+              Doanh nghiệp chưa được cấu hình năng lực
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              Vui lòng vào tab <b style={{ color: 'var(--text)' }}>Năng lực</b> để điền tên doanh nghiệp, khu vực phục vụ và loại rác tiếp nhận. 
+              Dữ liệu đơn thu gom sẽ chỉ hiển thị sau khi hoàn tất cấu hình.
+            </div>
+          </div>
         </div>
       )}
 
@@ -486,68 +509,90 @@ export const EnterpriseDashboardView = () => {
         </form>
       )}
 
-      {/* === TAB: CẤU HÌNH ĐIỂM === */}
-      {activeTab === 'rewards' && (
-        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-          <p style={{ color:'var(--text-secondary)', margin:0 }}>Cấu hình số điểm thưởng người dân nhận được trên mỗi kg rác thải. Thay đổi sẽ lưu vào database và có hiệu lực ngay.</p>
-          {rewardRules.length === 0 ? (
-            <div style={{ textAlign:'center', padding:32, background:'var(--bg-card)', borderRadius:16, border:'1px solid var(--border)', color:'var(--text-muted)' }}>
-              Chưa có quy tắc nào được cấu hình. Hệ thống sẽ dùng giá trị mặc định.
+      {/* === TAB: CẤU HÌNH ĐIỂM (READ-ONLY) === */}
+      {activeTab === 'rewards' && (() => {
+        const acceptedTypesStr = enterprise?.acceptedWasteTypes || '';
+        const acceptedTypes = acceptedTypesStr.split(',').map((s:string) => s.trim()).filter(Boolean);
+
+        const displayRules = acceptedTypes.map((type: string) => {
+          const existingRule = rewardRules.find(r => r.type === type);
+          return existingRule || { type, pointsPerKg: 0, invalidMultiplier: 0.2 };
+        });
+
+        return (
+          <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+            {/* Admin-only notice banner */}
+            <div style={{
+              padding: '14px 20px', borderRadius: 14,
+              background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
+              display: 'flex', alignItems: 'center', gap: 14
+            }}>
+              <div style={{ fontSize: 28 }}>🔐</div>
+              <div>
+                <div style={{ fontWeight: 700, color: '#a78bfa', marginBottom: 4 }}>
+                  Chỉ Admin mới có thể chỉnh sửa cấu hình điểm
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  Bảng điểm dưới đây áp dụng cho loại rác doanh nghiệp của bạn tiếp nhận,
+                  do Admin hệ thống quản lý tập trung. Nếu cần thay đổi, vui lòng liên hệ Admin.
+                </div>
+              </div>
             </div>
-          ) : (
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16 }}>
-              {rewardRules.map((rule: any) => {
-                const wl = WASTE_LABELS[rule.type] || { icon:'🗑️', label: rule.type };
-                return (
-                  <RuleCard key={rule.type} rule={rule} wl={wl} onSave={handleSaveRule} />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+
+            {acceptedTypes.length === 0 ? (
+              <div style={{ textAlign:'center', padding:32, background:'var(--bg-card)', borderRadius:16, border:'1px solid var(--border)', color:'var(--text-muted)' }}>
+                Vui lòng cập nhật các loại rác tiếp nhận trong phần <b>Năng lực</b> trước.
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                {displayRules.map((rule: any) => {
+                  const wl = WASTE_LABELS[rule.type] || { icon:'🗑️', label: rule.type };
+                  const pct = Math.round((rule.invalidMultiplier ?? 0.2) * 100);
+                  return (
+                    <div key={rule.type} style={{
+                      padding: 22, background: 'var(--bg-card)', border: '1px solid var(--border)',
+                      borderRadius: 18, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap'
+                    }}>
+                      <div style={{ width:52, height:52, background:'rgba(255,255,255,0.05)', borderRadius:14,
+                        display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
+                        {wl.icon}
+                      </div>
+                      <div style={{ flex:1, minWidth:160 }}>
+                        <div style={{ fontWeight:700, fontSize:16, marginBottom:4 }}>{wl.label}</div>
+                        <div style={{ fontSize:12, color:'var(--text-muted)' }}>Loại: {rule.type}</div>
+                      </div>
+                      <div style={{ display:'flex', gap:28, flexWrap:'wrap', alignItems:'center' }}>
+                        <div style={{ textAlign:'center' }}>
+                          <div style={{ fontSize:12, color:'var(--text-secondary)', fontWeight:600, marginBottom:8 }}>✅ Điểm / kg (Hợp lệ)</div>
+                          <div style={{ padding:'10px 22px', background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.25)',
+                            borderRadius:10, fontSize:22, fontWeight:800, color:'var(--green-400)' }}>
+                            {rule.pointsPerKg ?? 0}
+                          </div>
+                        </div>
+                        <div style={{ textAlign:'center' }}>
+                          <div style={{ fontSize:12, color:'var(--text-secondary)', fontWeight:600, marginBottom:8 }}>⚠️ Phân loại sai</div>
+                          <div style={{ padding:'10px 22px', background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.25)',
+                            borderRadius:10, fontSize:22, fontWeight:800, color:'#f59e0b' }}>
+                            {pct}%
+                          </div>
+                        </div>
+                        <div style={{ padding:'10px 16px', background:'rgba(255,255,255,0.03)', borderRadius:12,
+                          border:'1px solid rgba(255,255,255,0.08)', fontSize:12, color:'var(--text-muted)', lineHeight:1.7 }}>
+                          <div>✅ Đúng loại: <b style={{color:'var(--green-400)'}}>{rule.pointsPerKg ?? 0} điểm</b> / kg</div>
+                          <div>⚠️ Sai loại: <b style={{color:'#f59e0b'}}>{(((rule.pointsPerKg??0) * (rule.invalidMultiplier??0.2))).toFixed(1)} điểm</b> / kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 };
 
-function RuleCard({ rule, wl, onSave }: { rule: any; wl: any; onSave: (t:string, p:number, m:number)=>void }) {
-  const [pts, setPts] = useState<number>(rule.pointsPerKg || 0);
-  const [pct, setPct] = useState<number>(Math.round((rule.invalidMultiplier ?? 0.2) * 100));
-  return (
-    <div style={{ padding:24, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:18, display:'flex', flexDirection:'column', gap:18 }}>
-      {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-        <div style={{ width:52, height:52, background:'rgba(255,255,255,0.05)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>{wl.icon}</div>
-        <div style={{ fontWeight:700, fontSize:16 }}>{wl.label}</div>
-      </div>
-
-      {/* Điểm hợp lệ */}
-      <div>
-        <div style={{ fontSize:12, color:'var(--text-secondary)', fontWeight:600, marginBottom:8 }}>✅ Điểm khi phân loại ĐÚNG</div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <input type="number" min={0} step={0.5} value={pts} onChange={e => setPts(parseFloat(e.target.value))}
-            style={{ width:90, background:'var(--bg-input)', border:'1px solid rgba(34,197,94,0.4)', padding:'10px', borderRadius:8, color:'var(--green-400)', fontSize:20, fontWeight:800, textAlign:'center' }} />
-          <span style={{ color:'var(--text-secondary)', fontSize:13 }}>điểm / kg</span>
-        </div>
-      </div>
-
-      {/* Tỉ lệ khi sai */}
-      <div>
-        <div style={{ fontSize:12, color:'#f59e0b', fontWeight:600, marginBottom:8 }}>⚠️ Tỷ lệ điểm khi phân loại SAI (%)</div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <input type="number" min={0} max={100} step={1} value={pct} onChange={e => setPct(parseFloat(e.target.value))}
-            style={{ width:90, background:'var(--bg-input)', border:'1px solid rgba(245,158,11,0.4)', padding:'10px', borderRadius:8, color:'#f59e0b', fontSize:20, fontWeight:800, textAlign:'center' }} />
-          <span style={{ color:'#f59e0b', fontSize:13 }}>% điểm gốc</span>
-        </div>
-        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-          Ví dụ: {pct}% × {pts} đ/kg = <b style={{color:'#f59e0b'}}>{((pct/100)*pts).toFixed(1)} điểm/kg</b> khi sai loại
-        </div>
-      </div>
-
-      <button onClick={() => onSave(rule.type, pts, pct / 100)}
-        style={{ padding:'10px 20px', background:'var(--green-500)', color:'white', border:'none', borderRadius:10, fontWeight:700, cursor:'pointer', fontSize:14 }}>
-        💾 Lưu cấu hình
-      </button>
-    </div>
-  );
-}
+// RuleCard component removed — Enterprise reward config is now read-only.
+// Only Admin (AdminDashboardPage) can modify global reward rules.
