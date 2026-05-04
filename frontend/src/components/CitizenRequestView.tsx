@@ -335,19 +335,23 @@ export const CitizenRequestView = () => {
             
             {/* Waste Type */}
             <div>
-              <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                Loại rác thải của bạn <span style={{fontSize: 12, fontWeight: 400}}>(Nếu tải ảnh lên, AI sẽ tự động nhận diện lại loại rác này)</span>
+              <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: imageFile ? 'var(--green-400)' : 'var(--text-secondary)' }}>
+                {imageFile ? '🤖 AI sẽ tự động nhận diện loại rác dựa trên ảnh của bạn' : 'Loại rác thải của bạn'}
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+              <div style={{ 
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12,
+                opacity: imageFile ? 0.5 : 1, pointerEvents: imageFile ? 'none' : 'auto'
+              }}>
                 {WASTE_TYPES.map(w => (
                   <label key={w.value} style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '16px',
-                    background: type === w.value ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid ${type === w.value ? 'var(--green-500)' : 'var(--border)'}`,
-                    borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s'
+                    background: type === w.value && !imageFile ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                    border: `1px solid ${type === w.value && !imageFile ? 'var(--green-500)' : 'var(--border)'}`,
+                    borderRadius: 12, cursor: imageFile ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
+                    filter: imageFile ? 'grayscale(100%)' : 'none'
                   }}>
                     <input type="radio" name="wasteType" value={w.value} checked={type === w.value} 
-                           onChange={() => setType(w.value)} style={{ display: 'none' }} />
+                           onChange={() => setType(w.value)} disabled={!!imageFile} style={{ display: 'none' }} />
                     <span style={{ fontSize: 24 }}>{w.icon}</span>
                     <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.3 }}>{w.label}</span>
                   </label>

@@ -102,7 +102,14 @@ public class UserService {
             if (updates.containsKey("isOnline")) cp.setIsOnline((Boolean) updates.get("isOnline"));
             if (updates.containsKey("latitude")) cp.setLatitude(((Number) updates.get("latitude")).doubleValue());
             if (updates.containsKey("longitude")) cp.setLongitude(((Number) updates.get("longitude")).doubleValue());
-            if (updates.containsKey("companyName")) cp.setCompanyName((String) updates.get("companyName"));
+            if (updates.containsKey("companyName")) {
+                String oldCompany = cp.getCompanyName();
+                String newCompany = (String) updates.get("companyName");
+                cp.setCompanyName(newCompany);
+                if (newCompany != null && !newCompany.trim().isEmpty() && !newCompany.equals(oldCompany)) {
+                    notifyEnterprise(newCompany, cp.getFullName());
+                }
+            }
         } else if (profile instanceof EnterpriseProfile) {
             EnterpriseProfile ep = (EnterpriseProfile) profile;
             if (updates.containsKey("companyName")) ep.setCompanyName((String) updates.get("companyName"));
@@ -124,5 +131,27 @@ public class UserService {
         }
         
         return userProfileRepository.save(profile);
+    }
+
+    private void notifyEnterprise(String companyName, String collectorName) {
+        userProfileRepository.findByRole(Role.ENTERPRISE).stream()
+            .filter(p -> p instanceof EnterpriseProfile && companyName.equals(((EnterpriseProfile)p).getCompanyName()))
+            .findFirst()
+            .ifPresent(p -> {
+                try {
+                    String url = "http://ecocycle-notification:8085/api/v1/notifications/internal";
+                    java.util.Map<String, Object> body = new java.util.HashMap<>();
+                    body.put("userId", p.getId().toString());
+                    body.put("title", "Tài xế mới gia nhập! 🤝");
+                    body.put("message", "Tài xế " + (collectorName != null ? collectorName : "Mới") + " vừa đăng ký trực thuộc doanh nghiệp của bạn. Bạn có thể gán đơn thu gom cho tài xế này.");
+                    body.put("type", "SYSTEM");
+                    
+                    org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+                    restTemplate.postForObject(url, body, String.class);
+                    log.info("Sent notification to enterprise {} for new collector", companyName);
+                } catch (Exception e) {
+                    log.error("Failed to send notification to enterprise {}: {}", companyName, e.getMessage());
+                }
+            });
     }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { adminApi } from '../services/adminApi';
+import { rewardApi } from '../services/rewardApi';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, Legend
@@ -44,7 +45,7 @@ const ROLE_COLOR: Record<string, string> = {
 export default function AdminDashboardPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'overview' | 'users' | 'complaints'>('overview');
+  const [tab, setTab] = useState<'overview' | 'users' | 'complaints' | 'rewards'>('overview');
 
   // Overview
   const [stats, setStats] = useState<any>(null);
@@ -70,6 +71,19 @@ export default function AdminDashboardPage() {
   const [complaintsLoading, setComplaintsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
+
+  // Reward Rules
+  const REWARD_DEFAULTS = [
+    { id: '1', type: 'RECYCLABLE', label: 'Rác Tái Chế',    pointsPerKg: 10,  invalidMultiplier: 0.2, icon: '♻️' },
+    { id: '2', type: 'ORGANIC',    label: 'Rác Hữu Cơ',     pointsPerKg: 5,   invalidMultiplier: 0.2, icon: '🍎' },
+    { id: '3', type: 'HAZARDOUS',  label: 'Rác Độc Hại',    pointsPerKg: 50,  invalidMultiplier: 0.2, icon: '⚠️' },
+    { id: '4', type: 'ELECTRONIC', label: 'Rác Điện Tử',    pointsPerKg: 100, invalidMultiplier: 0.2, icon: '💻' },
+    { id: '5', type: 'BULKY',      label: 'Rác Cồng Kềnh',  pointsPerKg: 20,  invalidMultiplier: 0.2, icon: '🛋️' },
+  ];
+  const [rewardRules, setRewardRules] = useState(REWARD_DEFAULTS);
+  const [rewardLoading, setRewardLoading] = useState(false);
+  const [rewardSaving, setRewardSaving] = useState(false);
+  const [rewardToast, setRewardToast] = useState<string | null>(null);
 
   const handleRefreshOverview = async () => {
     setRefreshing(true);
@@ -104,6 +118,35 @@ export default function AdminDashboardPage() {
     adminApi.getComplaints().then(setComplaints).catch(() => setComplaints([])).finally(() => setComplaintsLoading(false));
   }, [tab]);
 
+  // Load reward rules
+  useEffect(() => {
+    if (tab !== 'rewards') return;
+    setRewardLoading(true);
+    rewardApi.getRules().then(data => {
+      if (data && data.length > 0) {
+        setRewardRules(prev => prev.map(pr => {
+          const api = data.find((d: any) => d.type === pr.type);
+          return api ? { ...pr, pointsPerKg: api.pointsPerKg, invalidMultiplier: api.invalidMultiplier ?? 0.2 } : pr;
+        }));
+      }
+    }).catch(() => {}).finally(() => setRewardLoading(false));
+  }, [tab]);
+
+  const handleSaveRewards = async () => {
+    setRewardSaving(true);
+    try {
+      await Promise.all(rewardRules.map(r =>
+        rewardApi.updateRule(r.type, { pointsPerKg: r.pointsPerKg, invalidMultiplier: r.invalidMultiplier })
+      ));
+      setRewardToast('✅ Đã lưu cấu hình điểm thưởng thành công!');
+    } catch {
+      setRewardToast('❌ Lưu thất bại, vui lòng thử lại.');
+    } finally {
+      setRewardSaving(false);
+      setTimeout(() => setRewardToast(null), 4000);
+    }
+  };
+
   const handleLock = async (userId: string, locked: boolean) => {
     setLockingId(userId);
     try {
@@ -134,9 +177,10 @@ export default function AdminDashboardPage() {
   };
 
   const TABS = [
-    { id: 'overview', icon: '📊', label: 'Tổng quan hệ thống' },
-    { id: 'users',    icon: '👥', label: 'Quản lý tài khoản' },
+    { id: 'overview',   icon: '📊', label: 'Tổng quan hệ thống' },
+    { id: 'users',      icon: '👥', label: 'Quản lý tài khoản' },
     { id: 'complaints', icon: '📩', label: 'Khiếu nại' },
+    { id: 'rewards',    icon: '🏅', label: 'Cấu hình điểm thưởng' },
   ] as const;
 
   const filteredComplaints = statusFilter === 'ALL'
@@ -592,6 +636,126 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── REWARDS CONFIG ── */}
+        {tab === 'rewards' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>Cấu hình Điểm thưởng 🏅</h2>
+                <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 14 }}>
+                  Thiết lập số điểm người dân nhận được trên mỗi kg rác thải. Cấu hình này áp dụng cho <b style={{ color: '#22c55e' }}>toàn bộ hệ thống</b>.
+                </p>
+              </div>
+            </div>
+
+            {/* Toast */}
+            {rewardToast && (
+              <div style={{
+                padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14,
+                background: rewardToast.startsWith('✅') ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                border: `1px solid ${rewardToast.startsWith('✅') ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                color: rewardToast.startsWith('✅') ? '#34d399' : '#f87171'
+              }}>
+                {rewardToast}
+              </div>
+            )}
+
+            {rewardLoading ? (
+              <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>⏳ Đang tải...</div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {rewardRules.map(rule => (
+                    <div key={rule.id} style={{
+                      ...S.card, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap'
+                    }}>
+                      {/* Icon */}
+                      <div style={{
+                        width: 60, height: 60, background: 'rgba(34,197,94,0.08)', borderRadius: 16,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, flexShrink: 0
+                      }}>
+                        {rule.icon}
+                      </div>
+
+                      {/* Label */}
+                      <div style={{ flex: 1, minWidth: 160 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{rule.label}</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>Loại rác: {rule.type}</div>
+                      </div>
+
+                      {/* Inputs */}
+                      <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 8, fontWeight: 600 }}>
+                            Điểm thưởng (Hợp lệ)
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <input
+                              type="number" min={0} value={rule.pointsPerKg}
+                              onChange={e => setRewardRules(prev => prev.map(r =>
+                                r.id === rule.id ? { ...r, pointsPerKg: parseFloat(e.target.value) || 0 } : r
+                              ))}
+                              style={{
+                                width: 100, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)',
+                                padding: '10px 12px', borderRadius: 10, color: '#22c55e', fontSize: 18,
+                                fontWeight: 800, textAlign: 'center', outline: 'none'
+                              }}
+                            />
+                            <span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>Điểm / kg</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 8, fontWeight: 600 }}>
+                            Tỷ lệ khi sai phân loại (%)
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <input
+                              type="number" min={0} max={100} step={1}
+                              value={Math.round((rule.invalidMultiplier || 0) * 100)}
+                              onChange={e => setRewardRules(prev => prev.map(r =>
+                                r.id === rule.id ? { ...r, invalidMultiplier: (parseFloat(e.target.value) || 0) / 100 } : r
+                              ))}
+                              style={{
+                                width: 100, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+                                padding: '10px 12px', borderRadius: 10, color: '#f59e0b', fontSize: 18,
+                                fontWeight: 800, textAlign: 'center', outline: 'none'
+                              }}
+                            />
+                            <span style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>% Điểm gốc</span>
+                          </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div style={{
+                          padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12,
+                          border: '1px solid rgba(255,255,255,0.08)', fontSize: 12, color: '#64748b', lineHeight: 1.6
+                        }}>
+                          <div>✅ Hợp lệ: <b style={{ color: '#22c55e' }}>{rule.pointsPerKg} điểm</b> / kg</div>
+                          <div>⚠️ Sai loại: <b style={{ color: '#f59e0b' }}>{(rule.pointsPerKg * (rule.invalidMultiplier || 0)).toFixed(1)} điểm</b> / kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={handleSaveRewards} disabled={rewardSaving}
+                    style={{
+                      padding: '14px 40px', background: rewardSaving ? '#374151' : '#22c55e',
+                      color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700,
+                      cursor: rewardSaving ? 'not-allowed' : 'pointer', transition: '0.2s', opacity: rewardSaving ? 0.7 : 1
+                    }}
+                  >
+                    {rewardSaving ? '⏳ Đang lưu...' : '💾 Lưu cấu hình điểm'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </main>

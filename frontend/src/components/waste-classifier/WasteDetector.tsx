@@ -1,5 +1,6 @@
 import React, { useState, useRef, ChangeEvent, DragEvent } from 'react';
-import { UploadCloud, Search, Trash2, Tag, RefreshCw, AlertCircle } from 'lucide-react';
+import { UploadCloud, Search, Trash2, Tag, RefreshCw, AlertCircle, X, List } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { wasteAiApi, PredictResponse, Prediction } from '../../services/wasteAiApi';
 import { collectionApi } from '../../services/collectionApi';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +14,7 @@ export default function WasteDetector() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PredictResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
@@ -90,45 +92,55 @@ export default function WasteDetector() {
     }
   };
 
+  // Helper: wrap geolocation in a promise with 10s timeout
+  const getLocationAsync = (): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('GEOLOCATION_NOT_SUPPORTED'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+        (err) => reject(err),
+        { timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  };
+
   const handleCreateRequest = async () => {
-    if (!user?.userId || !result) return;
+    if (!user?.userId || !result || !selectedFile) return;
     setSubmitting(true);
     try {
-      // Map YOLO class to our internal waste type enum. Fallback to RECYCLABLE
-      let mainType = 'RECYCLABLE';
-      const predictions = result.predictions || [];
-      if (predictions.some(p => p.class_name.toLowerCase().includes('organic'))) mainType = 'ORGANIC';
-      else if (predictions.some(p => p.class_name.toLowerCase().includes('battery') || p.class_name.toLowerCase().includes('hazardous'))) mainType = 'HAZARDOUS';
+      let location: string;
 
-      // We need GPS. Let's try to get it.
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const location = `${position.coords.latitude},${position.coords.longitude}`;
-          
-          if (!selectedFile) {
-            alert("No image selected");
-            setSubmitting(false);
-            return;
-          }
-
-          // Use the new API that forwards the image to the backend for native AI validation
-          await collectionApi.createRequestWithImage(
-            user.userId,
-            location,
-            selectedFile
-          );
-          
-          setSubmitSuccess(true);
+      try {
+        location = await getLocationAsync();
+      } catch {
+        // GPS không khả dụng hoặc bị từ chối → hỏi nhập thủ công
+        const manual = window.prompt(
+          'Không lấy được vị trí GPS.\nVui lòng nhập địa chỉ hoặc tọa độ của bạn:',
+          'TP. Hồ Chí Minh'
+        );
+        if (!manual || manual.trim() === '') {
+          alert('Cần có vị trí để tạo yêu cầu thu gom.');
           setSubmitting(false);
-        },
-        (err) => {
-          alert('Vui lòng bật tính năng định vị GPS để tạo yêu cầu.');
-          setSubmitting(false);
+          return;
         }
+        location = manual.trim();
+      }
+
+      await collectionApi.createRequestWithImage(
+        user.userId,
+        location,
+        'Phát hiện tự động qua AI', // description
+        selectedFile               // image (File)
       );
+
+      setSubmitSuccess(true);
     } catch (err) {
-      console.error(err);
-      alert('Tạo yêu cầu thất bại');
+      console.error('Tạo yêu cầu thu gom thất bại:', err);
+      alert('Tạo yêu cầu thất bại. Vui lòng thử lại.');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -137,7 +149,19 @@ export default function WasteDetector() {
     <div className="waste-detector-container">
       <div className="page-bg"></div>
       
-      <div className="detector-header">
+      <div className="detector-header" style={{ position: 'relative' }}>
+        <button 
+          onClick={() => navigate('/dashboard')}
+          style={{ 
+            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+            background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)',
+            padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+            fontSize: '14px', fontWeight: 600, transition: 'all 0.2s'
+          }}
+          className="btn-cancel-ai"
+        >
+          <X size={16} /> Thoát AI
+        </button>
         <h1>AI Waste Detector</h1>
         <p>Upload an image to detect and classify multiple waste items instantly.</p>
       </div>
@@ -293,8 +317,14 @@ export default function WasteDetector() {
               {submitSuccess && (
                 <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(59,130,246,0.1)', borderRadius: '12px', border: '1px solid #3b82f6', textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', marginBottom: '8px' }}>✅</div>
-                  <h4 style={{ color: '#60a5fa' }}>Tạo yêu cầu thành công!</h4>
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Bạn có thể theo dõi tiến độ ở trang Tổng quan.</p>
+                  <h4 style={{ color: '#60a5fa', marginBottom: '12px' }}>Tạo yêu cầu thành công!</h4>
+                  <button 
+                    onClick={() => navigate('/dashboard', { state: { activeTab: 'requests' } })}
+                    className="btn-primary" 
+                    style={{ width: '100%', justifyContent: 'center', background: '#3b82f6' }}
+                  >
+                    <List size={18} /> Xem danh sách yêu cầu
+                  </button>
                 </div>
               )}
             </div>

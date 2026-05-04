@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CitizenRequestView } from '../components/CitizenRequestView';
 import { MapDispatcher } from '../components/MapDispatcher';
@@ -95,7 +95,8 @@ function CustomChart({ data }: { data: { name: string; điểm: number; đơn: n
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState('overview');
+  const location = useLocation();
+  const [activeNav, setActiveNav] = useState(location.state?.activeTab || 'overview');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
