@@ -1,8 +1,8 @@
 <div align="center">
   <a href="https://github.com/hnaduc2005/smart-waste-platform" target="_blank">
-    <img src="./frontend/src/assets/readme_logo.png" width="150" alt="Logo" />
+    <img src="./frontend/src/assets/readme_logo.png" width="250" alt="Logo" />
   </a>
-
+  
   <h1>EcoCycle Website</h1>
 
   <p>
