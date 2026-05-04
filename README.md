@@ -1,23 +1,27 @@
 <div align="center">
-<a href="https://github.com/Sumonta056/FixHub-Issue-Tracker-Website" target="blank">
-<img src="./assets/chatBot.png" width="90" alt="Logo" />
-</a>
+  <a href="https://github.com/your-username/smart-waste-platform" target="_blank">
+    <img src="./assets/chatBot.png" width="90" alt="Logo" />
+  </a>
 
-<h2>EcoCycle Website</h2>
+  <h1>EcoCycle Website</h1>
 
-![](https://img.shields.io/badge/Java_Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-![](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![](https://img.shields.io/badge/YOLOv11-FF9900?style=for-the-badge&logo=python&logoColor=white)
-![](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+  <p>
+    <img src="https://img.shields.io/badge/Java_Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" alt="Spring Boot" />
+    <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+    <img src="https://img.shields.io/badge/YOLOv11-FF9900?style=for-the-badge&logo=python&logoColor=white" alt="YOLOv11" />
+    <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  </p>
 
-<img src ="./assets/bg-3.webp" width="95%">
+  <img src="./assets/bg-3.webp" width="95%" alt="Banner" />
+</div>
 
-<div>
 ## 💡 Tổng quan
 
-**Smart Waste Platform** là một nền tảng quản lý rác thải thông minh và mạnh mẽ, được xây dựng trên kiến trúc Microservices, React và tích hợp AI, thiết kế để tối ưu hóa quy trình thu gom và phân loại rác thải. Với trọng tâm là sự hiệu quả và thân thiện với người dùng, nền tảng cho phép quản lý toàn diện từ việc nhận diện rác, theo dõi quá trình thu gom đến hệ thống đổi thưởng một cách liền mạch. Các tính năng chính bao gồm:
+**Smart Waste Platform** là một nền tảng quản lý rác thải thông minh và mạnh mẽ, được xây dựng trên kiến trúc Microservices, React và tích hợp AI, thiết kế để tối ưu hóa quy trình thu gom và phân loại rác thải. Với trọng tâm là sự hiệu quả và thân thiện với người dùng, nền tảng cho phép quản lý toàn diện từ việc nhận diện rác, theo dõi quá trình thu gom đến hệ thống đổi thưởng một cách liền mạch. 
+
+Các tính năng chính bao gồm:
 
 ## ✨ Tính năng
 
@@ -28,10 +32,10 @@
 - **🎯 Tối ưu hóa & Sẵn sàng Mở rộng:** Được xây dựng bằng kiến trúc Microservices và đóng gói bằng Docker, hệ thống được tối ưu hóa cho tốc độ và sự ổn định, đảm bảo khả năng vận hành mượt mà ở quy mô lớn (Production-Ready).
 - **🎁 Hệ thống Điểm thưởng & Linh hoạt:** Khuyến khích người dùng tham gia bảo vệ môi trường thông qua hệ thống tích điểm và đổi thưởng (Reward System), đồng thời cung cấp các giải pháp quản lý linh hoạt cho các đối tác doanh nghiệp.
 - **📱 Thiết kế Tương thích (Responsive Design):** Trải nghiệm Smart Waste Platform trên mọi thiết bị với thiết kế giao diện tự động thích ứng với nhiều kích thước màn hình khác nhau.
-</div>
 
-<div>
-## 👩‍💻 Công nghệ Sử dụng (Tech Stack)
+Cho dù bạn là một người dùng cá nhân muốn góp phần bảo vệ môi trường, một nhân viên thu gom hay một doanh nghiệp đối tác, Smart Waste Platform là công cụ hoàn hảo để theo dõi và quản lý vòng tuần hoàn của rác thải một cách dễ dàng. ♻️
+
+## 👩💻 Công nghệ Sử dụng (Tech Stack)
 
 - **Java 21 & Spring Boot**: Ngôn ngữ và framework lõi để xây dựng hệ thống kiến trúc Microservices backend (bao gồm Auth, Collection, Reward, User, Enterprise, Analytics, Admin...).
 - **Spring Cloud**: Cung cấp hạ tầng quan trọng cho Microservices bao gồm API Gateway, Service Discovery và Config Server.
@@ -47,8 +51,7 @@
 - [Firebase](https://firebase.google.com/): Dịch vụ phụ trợ (BaaS) được tích hợp ở Frontend hỗ trợ các tính năng xác thực và thời gian thực.
 - [Axios](https://axios-http.com/): Thư viện xử lý các luồng gọi API giao tiếp mượt mà giữa Frontend React và hệ thống Backend Spring Boot.
 - [Bootstrap 5](https://getbootstrap.com/): Framework UI giúp xây dựng giao diện tương thích (responsive) nhanh chóng và đồng bộ.
-</div>
-<div>
+
 ## 📦 Bắt đầu nhanh (Getting Started)
 
 Để thiết lập và chạy dự án này trên môi trường cục bộ (local), hãy làm theo các bước dưới đây.
@@ -111,7 +114,3 @@ Sau khi hệ thống khởi động thành công (đặc biệt là qua Docker),
 ### 🔥 Tài liệu API (API Documentation)
 
 Hệ thống sử dụng Spring Boot cho các microservices. Sau khi các dịch vụ khởi động hoàn tất, tài liệu API (Swagger/OpenAPI) chi tiết cho từng dịch vụ có thể được truy cập thông qua API Gateway hoặc trực tiếp tại các cổng dịch vụ gốc (ví dụ: Auth Service tại `http://localhost:8081/swagger-ui.html`, Collection Service tại `http://localhost:8083/swagger-ui.html`).
-</div>
-
-là công cụ hoàn hảo để theo dõi và quản lý vòng tuần hoàn của rác thải một cách dễ dàng. ♻️
-
